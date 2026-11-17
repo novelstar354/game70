@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>BLOCKS NEON</title>
-<link rel="icon" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS8jV8y88XxNVwFE6Pq0IUOI_gsefgZbos3YA&s">
+<link rel="icon" href="tetlis.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--neon:#00f7ff;--pink:#ff36d1;--bg:#050812;--panel:rgba(12,20,36,.88)}
@@ -126,10 +126,10 @@ button,input{font:inherit}button{border:1px solid #00ddeb;background:linear-grad
 <div class="versus"><span class="player-pill" id="modeLabel">SOLO</span></div><div class="versus"><span class="name" id="myName">PLAYER</span><span class="vs">VS</span><span class="name op" id="enemyName">WAITING...</span></div>
 <div class="versus"><span class="player-pill" id="connection">接続中</span><span class="player-pill p2" id="roomLabel">ROOM ------</span></div>
 <div class="arena">
-<div class="game-side local"><div class="board-wrap"><canvas id="game" width="300" height="600"></canvas></div><div class="stats"><div class="caption">YOUR SCORE</div><div class="value" id="score">0</div><div class="caption">LINES</div><div class="value" id="lines">0</div><div class="caption">COMBO</div><div class="value" id="combo">0</div><div class="caption">HOLD</div><canvas id="hold" class="mini" width="120" height="90"></canvas><div class="caption">NEXT</div><canvas id="next" class="mini" width="120" height="90"></canvas></div></div>
+<div class="game-side local"><div class="board-wrap"><canvas id="game" width="300" height="600"></canvas></div><div class="stats"><div class="caption">YOUR SCORE</div><div class="value" id="score">0</div><div class="caption">LINES</div><div class="value" id="lines">0</div><div class="caption">COMBO</div><div class="value" id="combo">0</div><div class="caption">GARBAGE IN</div><div class="value" id="garbageCount">0</div><div class="caption">HOLD</div><canvas id="hold" class="mini" width="120" height="90"></canvas><div class="caption">NEXT</div><canvas id="next" class="mini" width="120" height="90"></canvas></div></div>
 <div class="game-side opponent"><div class="board-wrap"><canvas id="enemyGame" width="300" height="600"></canvas></div><div class="stats"><div class="caption">ENEMY SCORE</div><div class="value" id="enemyScore">0</div><div class="caption">LINES</div><div class="value" id="enemyLines">0</div><div class="caption">COMBO</div><div class="value" id="enemyCombo">0</div><div class="caption">STATUS</div><div class="value" id="enemyStatus" style="font-size:12px">READY</div></div></div>
 </div>
-<div id="gestureHint">左右フリック：移動 / 下フリック：ソフトドロップ / タップ：回転 / ダブルタップ：ハードドロップ（上フリックは無効）</div><div class="mobile-controls"><button data-action="left">◀</button><button data-action="rotateCCW">↶</button><button data-action="rotateCW">↻</button><button data-action="right">▶</button><button data-action="down">▼</button><button data-action="hold">HOLD</button><button data-action="drop" class="wide">DROP</button><button data-action="pause">Ⅱ</button></div>
+<div id="gestureHint">左右フリック：移動 / 下フリック：ソフトドロップ / タップ：回転 / ダブルタップ：ハードドロップ（上フリックは無効）<br>オンライン対戦：相手がラインを消すと、おじゃまブロックが下からせり上がります。</div><div class="mobile-controls"><button data-action="left">◀</button><button data-action="rotateCCW">↶</button><button data-action="rotateCW">↻</button><button data-action="right">▶</button><button data-action="down">▼</button><button data-action="hold">HOLD</button><button data-action="drop" class="wide">DROP</button><button data-action="pause">Ⅱ</button></div>
 <div class="footnote">← → 移動 / ↓ ソフトドロップ / SPACE ハードドロップ / ↑ 回転 / A・S 回転 / C HOLD / P 一時停止</div>
 </section>
 <div id="result"><div class="result-card"><h2 id="resultTitle">VICTORY</h2><div id="resultText">MATCH FINISHED</div><div class="result-actions"><button id="retryGame">もう一度プレイ</button><button id="backLobby">タイトルに戻る</button></div></div></div>
@@ -181,7 +181,7 @@ const colors={
 };
 let sb=null,authUser=null,myProfile=null,channel=null,queueChannel=null,queueTimer=null,roomId='',playerId=crypto.randomUUID(),playerName='PLAYER',opponentId=null,opponentUserId=null,opponentName='OPPONENT',isHost=false,started=false,finished=false,gameMode='solo',onlineKind='',cpuMode=false,cpuClock=0,resultRecorded=false,remote={board:Array.from({length:ROWS},()=>Array(COLS).fill(0)),score:0,lines:0,combo:0,gameOver:false};
 let board,current,next,hold=null,x=3,y=0,score=0,combo=0,
-linesCleared=0,level=1,lockTimer=0,
+linesCleared=0,level=1,lockTimer=0,garbageReceived=0,
 dropInterval=800,dropCounter=0,lastTime=0,
 holdUsed=false,lastMoveRotate=false,
 particles=[],shockwaves=[],lasers=[],
@@ -190,12 +190,6 @@ paused=false,backToBack=false,lastNet=0,sendTimer=0;
 const canvas=$('game'),ctx=canvas.getContext('2d'),enemyCanvas=$('enemyGame'),enemyCtx=enemyCanvas.getContext('2d'),nextCtx=$('next').getContext('2d'),holdCtx=$('hold').getContext('2d');
 function status(id,msg){$(id).textContent=msg}
 function setView(view){$('titleScreen').style.display=view==='title'?'flex':'none';$('accountScreen').style.display=view==='account'?'block':'none';$('onlineMenu').style.display=view==='online'?'flex':'none';$('lobby').style.display=view==='lobby'?'block':'none';$('gameArea').style.display=view==='game'?'block':'none'}
-/*
-function randomPiece(){
- const keys=Object.keys(pieces);
- const name=keys[Math.floor(Math.random()*keys.length)];
- return {name,shape:pieces[name].map(r=>[...r])};
-}*/
 
 // 全15種類のミノを出現対象にする
 const STANDARD_PIECES = [
@@ -223,10 +217,9 @@ function randomPiece() {
     shape: pieces[name].map(row => [...row])
   };
 }
-
 function initGame(){
  board=Array.from({length:ROWS},()=>Array(COLS).fill(0));
- score=0;level=1;combo=0;linesCleared=0;
+ score=0;level=1;combo=0;linesCleared=0;garbageReceived=0;
  dropInterval=800;dropCounter=0;
  hold=null;holdUsed=false;
  particles=[];shockwaves=[];lasers=[];
@@ -308,6 +301,7 @@ function updateUI(){
  $('score').textContent=score;
  $('combo').textContent=combo;
  $('lines').textContent=linesCleared;
+  $('garbageCount').textContent=garbageReceived;
 }
 function move(d){
  if(!started||paused||gameOver)return;
@@ -460,9 +454,40 @@ function drawEnemy(){drawBoard(enemyCtx,enemyCanvas,remote.board);if(remote.piec
 function snapshot(){return{board:board.map(r=>r.slice()),piece:current?{name:current.name,shape:current.shape.map(r=>r.slice()),x,y}:null,score,lines:linesCleared,combo,gameOver}}
 function publishState(){if(!channel||!started)return;send('state',snapshot())}
 async function send(event,payload){if(!channel)return;try{await channel.send({type:'broadcast',event,payload:{...payload,from:playerId}})}catch(e){console.warn('Realtime send failed',e)}}
-function sendAttack(lines){send('attack',{lines})}
+function sendAttack(lines){
+  const amount=Math.max(0,Math.min(8,Math.floor(Number(lines)||0)));
+  if(amount>0)send('attack',{lines:amount});
+}
 function receiveState(p){if(!p||p.from===playerId)return;remote={...remote,...p,board:Array.isArray(p.board)?p.board:remote.board};drawEnemy()}
-function receiveAttack(p){if(!p||p.from===playerId||!started||gameOver)return;const count=Math.min(8,Math.max(0,Number(p.lines)||0));for(let i=0;i<count;i++){const hole=Math.floor(Math.random()*COLS);board.shift();const row=Array(COLS).fill('#667080');row[hole]=0;board.push(row)}if(collision())endGame();publishState()}
+function receiveAttack(p){
+  if(!p||p.from===playerId||!started||gameOver||gameMode!=='online'||cpuMode)return;
+  const count=Math.min(8,Math.max(0,Math.floor(Number(p.lines)||0)));
+  if(!count)return;
+
+  // 相手から届いた列を盤面の最下段へ追加する
+  let previousHole=-1;
+  for(let i=0;i<count;i++){
+    let hole=Math.floor(Math.random()*COLS);
+    // 穴が同じ場所に連続しにくいようにする
+    if(COLS>1&&hole===previousHole)hole=(hole+1+Math.floor(Math.random()*(COLS-1)))%COLS;
+    previousHole=hole;
+
+    board.shift();
+    const garbageRow=Array(COLS).fill('#667080');
+    garbageRow[hole]=0;
+    board.push(garbageRow);
+  }
+
+  garbageReceived+=count;
+  effectText='GARBAGE +'+count;
+  effectTimer=35;
+  spawnShockwave();
+
+  // おじゃまブロックで操作中のミノが押し上げられなくなった場合は敗北
+  if(collision())endGame();
+  updateUI();
+  publishState();
+}
 function sendResult(won,scoreVal){send('game_end',{won,score:scoreVal})}
 function resetRemote(){remote={board:Array.from({length:ROWS},()=>Array(COLS).fill(0)),score:0,lines:0,combo:0,gameOver:false};drawEnemy()}
 async function connectAndJoin(code,host){if(!sb){status('lobbyStatus','Supabaseに接続してください');return}roomId=code;isHost=host;status('lobbyStatus','ルームに接続しています...');if(channel){await sb.removeChannel(channel);channel=null}
@@ -511,6 +536,7 @@ async function recordMatchResult(won){
  if(error){console.warn('Rating update failed:',error.message);status('lobbyStatus','戦績保存エラー: '+error.message);return}
  if(data?.rating!==undefined){status('lobbyStatus',`戦績保存完了：${data.old_rating} → ${data.rating} (${data.delta>=0?'+':''}${data.delta})`);await loadAccount()}
 }
+
 
 async function authAction(kind) {
   if (!initSupabase()) return;
@@ -590,6 +616,7 @@ async function authAction(kind) {
     status("authStatus", "認証エラー：" + error.message);
   }
 }
+
 
 
 
