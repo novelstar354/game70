@@ -505,7 +505,7 @@ function startCPUFallback(){gameMode='online';cpuMode=true;started=true;finished
 function startFriend(){if(!initSupabase())return;gameMode='online';onlineKind='friend';setView('lobby');status('lobbyStatus','ルームを作成するか、友達のルームIDを入力してください。')}
 
 
-function rankName(r){if(r>=2400)return 'NEON MASTER';if(r>=2100)return 'DIAMOND';if(r>=1800)return 'PLATINUM';if(r>=1500)return 'GOLD';if(r>=1200)return 'SILVER';return 'BRONZE'}
+function rankName(r){if(r>=3300)return 'STAR'if(r>=3000)return 'UNREAL';if(r>=2700)return 'CHAMPION';if(r>=2400)return 'MASTER';if(r>=2100)return 'DIAMOND';if(r>=1800)return 'PLATINUM';if(r>=1500)return 'GOLD';if(r>=1200)return 'SILVER';return 'BRONZE'}
 async function loadAccount(){
  if(!initSupabase())return;
  const {data:{session}}=await sb.auth.getSession();authUser=session?.user||null;
