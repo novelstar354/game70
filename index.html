@@ -62,7 +62,165 @@ button,input{font:inherit}button{border:1px solid #00ddeb;background:linear-grad
 .admin-ban{border-color:#a32b55;background:#351020}
 .admin-unban{border-color:#168a70;background:#0b3029}
 #adminStatus{white-space:pre-wrap;min-height:22px;color:#9fefff;font-size:13px;margin-top:10px}
+#soloItemPanel {
+  display:none;
+  width:min(500px,100%);
+  margin:0 auto 12px;
+  padding:12px;
+  text-align:center;
+  background:linear-gradient(135deg,#101d32,#07101e);
+  border:1px solid #087c91;
+  border-radius:12px;
+  box-shadow:0 0 18px #00dfff22;
+}
 
+.soloItemTitle {
+  font-size:10px;
+  letter-spacing:3px;
+  color:#00f7ff;
+  margin-bottom:7px;
+}
+
+#soloItemName {
+  font-size:14px;
+  font-weight:bold;
+  color:white;
+}
+
+#soloItemTimer {
+  font-size:12px;
+  color:#9fefff;
+  margin-top:5px;
+}
+
+.soloItemKey {
+  display:inline-block;
+  margin-top:8px;
+  padding:4px 15px;
+  border-radius:5px;
+  background:#073347;
+  border:1px solid #00ddeb;
+  color:#fff;
+  font-size:11px;
+  font-weight:bold;
+}
+#soloSelect {
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:#020712dd;
+  backdrop-filter:blur(9px);
+}
+
+.soloSelectCard {
+  width:min(420px,100%);
+  padding:28px 22px;
+  border:1px solid #087c91;
+  border-radius:18px;
+  background:linear-gradient(145deg,#10243a,#07101d);
+  box-shadow:0 0 35px #00dfff22;
+  text-align:center;
+}
+
+.soloSelectTitle {
+  color:#00f7ff;
+  font-size:22px;
+  font-weight:900;
+  letter-spacing:3px;
+}
+
+.soloSelectSub {
+  color:#8aa6b9;
+  font-size:12px;
+  margin:12px 0 25px;
+}
+
+#soloSelect button {
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  padding:17px;
+  margin-top:12px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
+  letter-spacing:1px;
+}
+
+#soloSelect button span {
+  font-size:16px;
+}
+
+#soloSelect button small {
+  font-size:11px;
+  font-weight:normal;
+  color:#b4dce8;
+}
+
+.soloOnButton {
+  border:1px solid #00eaff;
+  background:linear-gradient(120deg,#06435a,#10243a);
+  color:#fff;
+}
+
+.soloOffButton {
+  border:1px solid #65788b;
+  background:linear-gradient(120deg,#202d3c,#111b29);
+  color:#fff;
+}
+
+#soloSelect .soloBackButton {
+  margin-top:20px;
+  padding:12px;
+  border:1px solid #34485b;
+  background:#0a1420;
+  color:#9aafbf;
+  font-size:13px;
+}
+#soloItemPanel {
+  display: none;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 6px 0 0;
+  padding: 7px 5px;
+  text-align: center;
+  background: linear-gradient(135deg, #101d32, #07101e);
+  border: 1px solid #087c91;
+  border-radius: 8px;
+  box-shadow: 0 0 12px #00dfff22;
+}
+
+.soloItemTitle {
+  color: #00eaff;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-bottom: 5px;
+}
+
+#soloItemName {
+  color: white;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+#soloItemTimer {
+  color: #9aafc5;
+  font-size: 10px;
+  margin-top: 4px;
+}
+
+.soloItemKey {
+  color: #00eaff;
+  font-size: 11px;
+  font-weight: bold;
+  margin-top: 5px;
+}
 </style></head>
 <body>
 <header><h1>BLOCKS NEON</h1></header>
@@ -71,7 +229,26 @@ button,input{font:inherit}button{border:1px solid #00ddeb;background:linear-grad
 <div class="menu-buttons"><button id="soloMode">一人でプレイ</button><button id="multiMode" class="pink">マルチプレイ</button><button id="onlineMode" class="subtle">オンライン</button><button id="accountMode" class="subtle">アカウント・ランキング</button></div>
 <div class="menu-note">PC：矢印キー / SPACE　スマートフォン：フリック・タップ対応</div>
 </div></section>
+<div id="soloSelect">
+  <div class="soloSelectCard">
+    <div class="soloSelectTitle">SELECT SOLO MODE</div>
+    <div class="soloSelectSub">プレイモードを選択してください</div>
 
+    <button id="soloItemOn" class="soloOnButton">
+      <span>SOLO · ITEM ON</span>
+      <small>アイテムあり</small>
+    </button>
+
+    <button id="soloItemOff" class="soloOffButton">
+      <span>SOLO · ITEM OFF</span>
+      <small>アイテムなし</small>
+    </button>
+
+    <button id="soloSelectBack" class="soloBackButton">
+      戻る
+    </button>
+  </div>
+</div>
 <section id="accountScreen">
   <div class="account-grid">
     <div class="account-box">
@@ -158,8 +335,19 @@ button,input{font:inherit}button{border:1px solid #00ddeb;background:linear-grad
 <section id="gameArea">
 <div class="versus"><span class="player-pill" id="modeLabel">SOLO</span></div><div class="versus"><span class="name" id="myName">PLAYER</span><span class="vs">VS</span><span class="name op" id="enemyName">WAITING...</span></div>
 <div class="versus"><span class="player-pill" id="connection">接続中</span><span class="player-pill p2" id="roomLabel">ROOM ------</span></div>
+
 <div class="arena">
-<div class="game-side local"><div class="board-wrap"><canvas id="game" width="300" height="600"></canvas></div><div class="stats"><div class="caption">YOUR SCORE</div><div class="value" id="score">0</div><div class="caption">LINES</div><div class="value" id="lines">0</div><div class="caption">COMBO</div><div class="value" id="combo">0</div><div class="caption">GARBAGE IN</div><div class="value" id="garbageCount">0</div><div class="caption">HOLD</div><canvas id="hold" class="mini" width="120" height="90"></canvas><div class="caption">NEXT</div><canvas id="next" class="mini" width="120" height="90"></canvas></div></div>
+<div class="game-side local"><div class="board-wrap"><canvas id="game" width="300" height="600"></canvas></div><div class="stats"><div class="caption">HIGH SCORE</div>
+<div class="value" id="soloHighScore">0</div><div class="caption">YOUR SCORE</div><div class="value" id="score">0</div><div class="caption">LINES</div><div class="value" id="lines">0</div><div class="caption">COMBO</div><div class="value" id="combo">0</div><div class="caption">GARBAGE IN</div><div class="value" id="garbageCount">0</div><div class="caption">HOLD</div><canvas id="hold" class="mini" width="120" height="90"></canvas><div class="caption">NEXT</div>
+
+<canvas id="next" class="mini" width="120" height="90"></canvas>
+
+<div id="soloItemPanel">
+  <div class="soloItemTitle">ITEM</div>
+  <div id="soloItemName">アイテムなし</div>
+  <div id="soloItemTimer">8ライン消去で抽選</div>
+  <div class="soloItemKey">PRESS V</div>
+</div>  </div></div>
 <div class="game-side opponent"><div class="board-wrap"><canvas id="enemyGame" width="300" height="600"></canvas></div><div class="stats"><div class="caption">ENEMY SCORE</div><div class="value" id="enemyScore">0</div><div class="caption">LINES</div><div class="value" id="enemyLines">0</div><div class="caption">COMBO</div><div class="value" id="enemyCombo">0</div><div class="caption">STATUS</div><div class="value" id="enemyStatus" style="font-size:12px">READY</div></div></div>
 </div>
 <div id="gestureHint">左右フリック：移動 / 下フリック：ソフトドロップ / タップ：回転 / ダブルタップ：ハードドロップ（上フリックは無効）<br>オンライン対戦：相手がラインを消すと、おじゃまブロックが下からせり上がります。</div><div class="mobile-controls"><button data-action="left">◀</button><button data-action="rotateCCW">↶</button><button data-action="rotateCW">↻</button><button data-action="right">▶</button><button data-action="down">▼</button><button data-action="hold">HOLD</button><button data-action="drop" class="wide">DROP</button><button data-action="pause">Ⅱ</button></div>
@@ -213,6 +401,269 @@ const colors={
  Z:'#ff0044'
 };
 let sb=null,authUser=null,myProfile=null,isAdmin=false,adminAccounts=[],channel=null,queueChannel=null,queueTimer=null,roomId='',playerId=crypto.randomUUID(),playerName='PLAYER',opponentId=null,opponentUserId=null,opponentName='OPPONENT',isHost=false,started=false,finished=false,gameMode='solo',onlineKind='',cpuMode=false,cpuClock=0,resultRecorded=false,remote={board:Array.from({length:ROWS},()=>Array(COLS).fill(0)),score:0,lines:0,combo:0,gameOver:false};
+// ========================================
+// SOLO ITEM SYSTEM
+// ========================================
+const SOLO_ITEM_LIMIT = 8;
+const SOLO_ITEM_TIME = 10000;
+
+let soloItemLines = 0;
+let soloItem = null;
+let soloItemExpires = 0;
+
+// アイテム効果でホールド中のミノを出す回数
+let forcedHoldPiece = null;
+let forcedHoldUses = 0;
+let soloItemMode = false;
+// ライン削除アニメーション
+let itemClearAnimation = null;
+const SOLO_ITEMS = [
+  {
+    id:'one',
+    name:'残り1マスの行を全消去',
+    empty:1,
+    count:Infinity
+  },
+  {
+    id:'two',
+    name:'残り2マスの行を5行消去',
+    empty:2,
+    count:5
+  },
+  {
+    id:'three',
+    name:'残り3マスの行を2行消去',
+    empty:3,
+    count:2
+  },
+  {
+    id:'four',
+    name:'残り4マスの行を1行消去',
+    empty:4,
+    count:1
+  },
+    {
+    id:'hold',
+    name:'ホールドミノを6回連続で使用',
+    count:6
+  }
+];
+
+// ローカルハイスコア
+function updateSoloHighScore(){
+  const key = soloItemMode
+    ? 'blocks_neon_solo_highscore'
+    : 'blocks_neon_solo_highscore_noitem';
+
+  const best=Number(localStorage.getItem(key)||0);
+
+  if(gameMode==='solo'&&score>best){
+    localStorage.setItem(key,String(score));
+  }
+
+  const el=$('soloHighScore');
+
+  if(el){
+    el.textContent=Number(
+      localStorage.getItem(key)||0
+    ).toLocaleString();
+  }
+}
+
+// アイテム表示
+function updateSoloItemUI(){
+  const panel = $('soloItemPanel');
+  if(!panel)return;
+
+  if(gameMode!=='solo'||!soloItemMode){
+  panel.style.display='none';
+  return;
+}
+
+  panel.style.display='block';
+
+  if(soloItem && Date.now() >= soloItemExpires){
+    soloItem=null;
+    soloItemExpires=0;
+  }
+
+  if(!soloItem){
+    $('soloItemName').textContent='アイテムなし';
+    $('soloItemTimer').textContent=
+      `次の抽選まで ${soloItemLines}/${SOLO_ITEM_LIMIT} ライン`;
+    return;
+  }
+
+  const remaining=Math.max(
+    0,
+    (soloItemExpires-Date.now())/1000
+  );
+
+  $('soloItemName').textContent=soloItem.name;
+  $('soloItemTimer').textContent=
+    `Vキーで使用 · 残り ${remaining.toFixed(1)} 秒`;
+}
+
+// 8ラインごとに抽選
+function onSoloLinesCleared(count){
+  if(gameMode!=='solo'||!soloItemMode||count<=0)return;
+
+  soloItemLines += count;
+
+  while(soloItemLines >= SOLO_ITEM_LIMIT){
+    soloItemLines -= SOLO_ITEM_LIMIT;
+
+    if(!soloItem){
+      // ホールドが存在するときだけホールドアイテムを抽選対象にする
+      const availableItems = SOLO_ITEMS.filter(item =>
+        item.id !== 'hold' || hold !== null
+      );
+
+      soloItem =
+        availableItems[
+          Math.floor(Math.random()*availableItems.length)
+        ];
+
+      soloItemExpires=Date.now()+SOLO_ITEM_TIME;
+
+      effectText='ITEM GET!';
+      effectTimer=35;
+    }
+  }
+
+  updateSoloItemUI();
+}
+
+// アイテム使用
+function useSoloItem(){
+  if(gameMode!=='solo'||!soloItemMode||!started||paused||gameOver)return;
+  if(!soloItem)return;
+
+  if(Date.now() >= soloItemExpires){
+    soloItem=null;
+    soloItemExpires=0;
+    updateSoloItemUI();
+    return;
+  }
+
+  const item=soloItem;
+
+  // =================================
+  // HOLD ITEM
+  // =================================
+  if(item.id==='hold'){
+
+    if(!hold){
+      soloItem=null;
+      soloItemExpires=0;
+      updateSoloItemUI();
+      return;
+    }
+
+    // ホールド中のミノを保存
+    forcedHoldPiece={
+      name:hold.name,
+      shape:hold.shape.map(row=>[...row])
+    };
+
+    // 6回連続で出現させる
+    forcedHoldUses=6;
+
+    soloItem=null;
+    soloItemExpires=0;
+
+    effectText='HOLD ITEM ×6';
+    effectTimer=45;
+
+    updateSoloItemUI();
+    draw();
+
+    return;
+  }
+
+  // =================================
+  // LINE CLEAR ITEMS
+  // =================================
+
+  const candidates=[];
+
+  for(let r=0;r<ROWS;r++){
+    const filled=board[r].filter(v=>v!==0).length;
+    const empty=COLS-filled;
+
+    if(filled>0 && empty===item.empty){
+      candidates.push(r);
+    }
+  }
+
+  for(let i=candidates.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [candidates[i],candidates[j]]=
+      [candidates[j],candidates[i]];
+  }
+
+  const selected=candidates.slice(0,item.count);
+
+    // 下のラインから順番に処理
+  selected.sort((a,b)=>b-a);
+
+  soloItem=null;
+  soloItemExpires=0;
+
+  updateSoloItemUI();
+
+  // 対象ラインがなかった場合
+  if(selected.length===0){
+    effectText='NO TARGET ROW';
+    effectTimer=45;
+
+    updateUI();
+    draw();
+    return;
+  }
+
+ 
+
+// 通常のライン消去風アニメーションを開始
+itemClearAnimation = {
+  rows: selected.slice(),
+  col: 0,
+  lastStep: Date.now(),
+  interval: 30
+};
+
+effectText = 'ITEM CLEAR';
+effectTimer = 0;
+
+draw();
+}
+// ライン削除アニメーション終了
+function finishSoloItemClearAnimation(){
+  if(!itemClearAnimation)return;
+
+  const rows = itemClearAnimation.rows
+    .slice()
+    .sort((a,b)=>b-a);
+
+  // 通常のライン消去と同じ衝撃波
+  spawnShockwave();
+
+  // 対象ラインを下から順番に削除
+  for(const r of rows){
+    board.splice(r,1);
+    board.unshift(Array(COLS).fill(0));
+  }
+
+  itemClearAnimation = null;
+
+  effectText = `ITEM CLEAR ×${rows.length}`;
+  effectTimer = 45;
+
+  updateUI();
+  publishState();
+  draw();
+}
+
 let board,current,next,hold=null,x=3,y=0,score=0,combo=0,
 linesCleared=0,level=1,lockTimer=0,garbageReceived=0,
 dropInterval=800,dropCounter=0,lastTime=0,
@@ -223,6 +674,7 @@ paused=false,backToBack=false,lastNet=0,sendTimer=0;
 const canvas=$('game'),ctx=canvas.getContext('2d'),enemyCanvas=$('enemyGame'),enemyCtx=enemyCanvas.getContext('2d'),nextCtx=$('next').getContext('2d'),holdCtx=$('hold').getContext('2d');
 function status(id,msg){$(id).textContent=msg}
 function setView(view){$('adminScreen').style.display='none';$('titleScreen').style.display=view==='title'?'flex':'none';$('accountScreen').style.display=view==='account'?'block':'none';$('onlineMenu').style.display=view==='online'?'flex':'none';$('lobby').style.display=view==='lobby'?'block':'none';$('gameArea').style.display=view==='game'?'block':'none'}
+
 const STANDARD_PIECES = [
   'A', 'B', 'C', 'D', 'E','F', 'G', 'H', 'I', 'J', 'K','L','M','O', 'S', 'T', 'Z'
 ];
@@ -249,10 +701,19 @@ function randomPiece() {
   };
 }
 function initGame(){
+ itemClearAnimation=null;
  board=Array.from({length:ROWS},()=>Array(COLS).fill(0));
  score=0;level=1;combo=0;linesCleared=0;garbageReceived=0;
  dropInterval=800;dropCounter=0;
  hold=null;holdUsed=false;
+soloItemLines=0;
+soloItem=null;
+soloItemExpires=0;
+forcedHoldPiece=null;
+forcedHoldUses=0;
+
+updateSoloItemUI();
+updateSoloHighScore();
  particles=[];shockwaves=[];lasers=[];
  effectTimer=0;effectText="";backToBack=false;
  gameOver=false;paused=false;lastMoveRotate=false;
@@ -261,13 +722,31 @@ function initGame(){
  updateUI();
 }
 function resetPiece(){
- current=next;
- next=randomPiece();
- x=3;y=0;
- holdUsed=false;
- lockTimer=0;
- lastMoveRotate=false;
- if(collision()) endGame();
+  // アイテム効果中はホールド中のミノを優先
+  if(forcedHoldUses > 0 && forcedHoldPiece){
+    current={
+      name:forcedHoldPiece.name,
+      shape:forcedHoldPiece.shape.map(row=>[...row])
+    };
+
+    forcedHoldUses--;
+
+    if(forcedHoldUses<=0){
+      forcedHoldUses=0;
+      forcedHoldPiece=null;
+    }
+  }else{
+    current=next;
+    next=randomPiece();
+  }
+
+  x=3;
+  y=0;
+  holdUsed=false;
+  lockTimer=0;
+  lastMoveRotate=false;
+
+  if(collision())endGame();
 }
 function collision(tx=x,ty=y,shape=current.shape){
  return shape.some((r,ry)=>r.some((v,cx)=>{
@@ -319,6 +798,7 @@ function clearLines(){
    effectTimer=40;
   }else{score+=lines*100;backToBack=false}
   score+=combo*50;
+onSoloLinesCleared(lines);
   linesCleared+=lines;
   // Online-only garbage attack. It does not alter solo scoring or line-clear rules.
   if(gameMode==="online"&&!cpuMode&&channel){
@@ -332,7 +812,9 @@ function updateUI(){
  $('score').textContent=score;
  $('combo').textContent=combo;
  $('lines').textContent=linesCleared;
-  $('garbageCount').textContent=garbageReceived;
+ $('garbageCount').textContent=garbageReceived;
+
+ updateSoloHighScore();
 }
 function move(d){
  if(!started||paused||gameOver)return;
@@ -422,7 +904,24 @@ function drawBoard(target,canv,sourceBoard,showGrid=true){target.clearRect(0,0,c
 
 function draw(){
  ctx.clearRect(0,0,canvas.width,canvas.height);
- board.forEach((row,ry)=>row.forEach((val,cx)=>{if(val)drawCell(cx,ry,val,false,ctx)}));
+// 盤面描画
+board.forEach((row,ry)=>{
+  row.forEach((val,cx)=>{
+    if(!val)return;
+
+    let hidden = false;
+
+    if(itemClearAnimation &&
+       itemClearAnimation.rows.includes(ry) &&
+       cx < itemClearAnimation.col){
+      hidden = true;
+    }
+
+    if(!hidden){
+      drawCell(cx,ry,val,false,ctx);
+    }
+  });
+});
  if(current&&!gameOver){
   let gy=y;while(!collision(x,gy+1))gy++;
   current.shape.forEach((r,ry)=>r.forEach((v,cx)=>{
@@ -464,7 +963,14 @@ function draw(){
   ctx.fillText("GAME OVER",canvas.width/2,canvas.height/2-20);
   ctx.font="20px Arial";ctx.fillText("Press R to Restart",canvas.width/2,canvas.height/2+20);
  }
- drawMini(nextCtx,next);drawMini(holdCtx,hold);
+ // ホールドアイテムの効果中はNEXTにホールド中のミノを表示
+const previewPiece =
+  forcedHoldUses > 0 && forcedHoldPiece
+    ? forcedHoldPiece
+    : next;
+
+drawMini(nextCtx,previewPiece);
+drawMini(holdCtx,hold);
 }
 
 function drawMini(target,piece){
@@ -527,12 +1033,35 @@ async function connectAndJoin(code,host){if(!sb){status('lobbyStatus','Supabase�
  channel.on('broadcast',{event:'state'},({payload})=>receiveState(payload));channel.on('broadcast',{event:'attack'},({payload})=>receiveAttack(payload));channel.on('broadcast',{event:'game_end'},({payload})=>{if(payload?.from!==playerId&&!finished){finished=true;gameOver=true;recordMatchResult(true);showResult('VICTORY','相手がゲームオーバーになりました。あなたの勝ちです！')}});channel.on('broadcast',{event:'restart'},({payload})=>{if(payload?.from!==playerId){started=true;finished=false;resultRecorded=false;initGame();resetRemote();$('result').style.display='none';setView('game');status('lobbyStatus','再戦を開始しました')}});
  channel.subscribe(async s=>{if(s==='SUBSCRIBED'){await channel.track({name:playerName,userId:authUser?.id||null,joinedAt:Date.now()});$('roomLabel').textContent='ROOM '+roomId;gameMode='online';$('modeLabel').textContent=(onlineKind||'FRIEND').toUpperCase();setView('game');$('myName').textContent=playerName;status('lobbyStatus','接続しました。相手の参加を待っています...')}})
 }
-function startMatch(){if(started&&gameMode==='online'&&!finished)return;started=true;finished=false;resultRecorded=false;cpuMode=false;$('modeLabel').textContent=(onlineKind||'FRIEND').toUpperCase();$('gameArea').querySelector('.arena').classList.remove('single');initGame();resetRemote();setView('game');$('myName').textContent=playerName;$('enemyName').textContent=opponentName;$('connection').textContent='対戦中';publishState()}
+function startMatch(){soloItemMode=false;if(started&&gameMode==='online'&&!finished)return;started=true;finished=false;resultRecorded=false;cpuMode=false;$('modeLabel').textContent=(onlineKind||'FRIEND').toUpperCase();$('soloItemPanel').style.display='none';$('gameArea').querySelector('.arena').classList.remove('single');initGame();resetRemote();setView('game');$('myName').textContent=playerName;$('enemyName').textContent=opponentName;$('connection').textContent='対戦中';publishState()}
 function generateRoom(){return String(Math.floor(100000+Math.random()*900000))}
 function initSupabase(){if(sb)return true;if(!SUPABASE_URL.startsWith('https://')||SUPABASE_ANON_KEY.includes('PASTE_YOUR_')){alert('管理者による初回設定が必要です。配布前にHTML内のSUPABASE_URLとSUPABASE_ANON_KEYへSupabaseのProject URLとPublishable keyを設定してください。');return false}try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{realtime:{params:{eventsPerSecond:30}}});return true}catch(e){alert('Supabase接続エラー: '+e.message);return false}}
-function openLocal(mode){gameMode=mode;onlineKind='';cpuMode=false;started=true;finished=false;resultRecorded=false;opponentName='';$('modeLabel').textContent=mode==='solo'?'SOLO':'LOCAL MULTI';$('enemyName').textContent='';$('connection').textContent='LOCAL';$('roomLabel').textContent='';$('gameArea').querySelector('.arena').classList.toggle('single',mode==='solo');$('gameSideDummy');setView('game');$('myName').textContent=playerName;resetRemote();initGame();if(mode==='multi'){opponentName='CPU';cpuMode=true;$('enemyName').textContent='CPU';$('connection').textContent='CPU BATTLE';$('gameArea').querySelector('.arena').classList.remove('single')} }
+function openLocal(mode,itemMode=false){soloItemMode = mode==='solo' && itemMode;gameMode=mode;onlineKind='';cpuMode=false;started=true;finished=false;resultRecorded=false;opponentName='';$('modeLabel').textContent =
+  mode==='solo'
+    ? (soloItemMode?'SOLO · ITEM ON':'SOLO · ITEM OFF')
+    : 'LOCAL MULTI';$('soloItemPanel').style.display =
+  soloItemMode ? 'block' : 'none';$('enemyName').textContent='';$('connection').textContent='LOCAL';$('roomLabel').textContent='';$('gameArea').querySelector('.arena').classList.toggle('single',mode==='solo');$('gameSideDummy');setView('game');$('myName').textContent=playerName;resetRemote();initGame();if(mode==='multi'){opponentName='CPU';cpuMode=true;$('enemyName').textContent='CPU';$('connection').textContent='CPU BATTLE';$('gameArea').querySelector('.arena').classList.remove('single')} }
 async function queueFor(kind){if(!initSupabase())return;if(kind==='rank'&&!authUser){setView('account');status('authStatus','ランクマッチにはログインが必要です。');return}onlineKind=kind;gameMode='online';cpuMode=false;status('lobbyStatus',kind.toUpperCase()+' マッチング中...');setView('lobby');if(queueChannel){await sb.removeChannel(queueChannel);queueChannel=null}queueChannel=sb.channel('blocks-neon-queue-'+kind,{config:{presence:{key:playerId},broadcast:{self:false}}});queueChannel.on('presence',{event:'sync'},async()=>{if(!queueChannel)return;const ids=Object.keys(queueChannel.presenceState()).sort();if(ids.length>=2&&ids.includes(playerId)){const pair=ids.slice(0,2);if(!pair.includes(playerId))return;const code=''+Array.from(pair.join('').replace(/-/g,'')).reduce((a,c)=>((a*31+c.charCodeAt(0))>>>0),7).toString().slice(-6).padStart(6,'0');if(queueTimer){clearTimeout(queueTimer);queueTimer=null}const host=pair[0]===playerId;await sb.removeChannel(queueChannel);queueChannel=null;connectAndJoin(code,host)}});queueChannel.subscribe(async st=>{if(st==='SUBSCRIBED'){await queueChannel.track({name:playerName,userId:authUser?.id||null,kind,at:Date.now()});status('lobbyStatus','対戦相手を探しています...');if(kind==='free'){queueTimer=setTimeout(()=>{if(!started){if(queueChannel){sb.removeChannel(queueChannel);queueChannel=null}startCPUFallback()}},15000)}}});}
-function startCPUFallback(){gameMode='online';cpuMode=true;started=true;finished=false;resultRecorded=false;opponentName='NEON CPU';$('modeLabel').textContent='FREE MATCH · CPU';$('enemyName').textContent=opponentName;$('connection').textContent='CPU BATTLE';$('roomLabel').textContent='FREE';$('gameArea').querySelector('.arena').classList.remove('single');setView('game');$('myName').textContent=playerName;initGame();resetRemote();status('lobbyStatus','相手が見つからなかったためCPU戦を開始しました。');}
+function startCPUFallback(){
+  soloItemMode=false;
+  gameMode='online';
+  cpuMode=true;
+  started=true;
+  finished=false;
+  resultRecorded=false;
+  opponentName='NEON CPU';
+  $('modeLabel').textContent='FREE MATCH · CPU';
+  $('soloItemPanel').style.display='none';
+  $('enemyName').textContent=opponentName;
+  $('connection').textContent='CPU BATTLE';
+  $('roomLabel').textContent='FREE';
+  $('gameArea').querySelector('.arena').classList.remove('single');
+  setView('game');
+  $('myName').textContent=playerName;
+  initGame();
+  resetRemote();
+  status('lobbyStatus','相手が見つからなかったためCPU戦を開始しました。');
+}
 function startFriend(){if(!initSupabase())return;gameMode='online';onlineKind='friend';setView('lobby');status('lobbyStatus','ルームを作成するか、友達のルームIDを入力してください。')}
 
 
@@ -751,9 +1280,26 @@ $('joinRoom').onclick=()=>{if(!initSupabase())return;const id=$('roomInput').val
 $('backLobby').onclick=async()=>{if(channel){try{await channel.untrack();await sb.removeChannel(channel)}catch(e){}channel=null}if(queueChannel&&sb){try{await sb.removeChannel(queueChannel)}catch(e){}queueChannel=null}if(queueTimer)clearTimeout(queueTimer);started=false;finished=false;cpuMode=false;$('result').style.display='none';setView('title')};
 $('retryGame').onclick=retryCurrentGame;
 $('accountMode').onclick=async()=>{setView('account');if(initSupabase())await loadAccount()};$('adminOpen').onclick=openAdminPanel;$('adminBack').onclick=()=>{$('adminScreen').style.display='none';setView('account')};$('adminRefresh').onclick=loadAdminAccounts;$('adminLogsRefresh').onclick=loadAdminLogs;$('adminSearch').addEventListener('input',renderAdminAccounts);$('adminAccountsBody').addEventListener('click',e=>{const b=e.target.closest('button[data-admin-action]');if(b)runAdminAction(b.dataset.adminAction,b.dataset.id)});$('accountBack').onclick=()=>setView('title');$('refreshLeaderboard').onclick=loadLeaderboard;$('signUpBtn').onclick=()=>authAction('signup');$('signInBtn').onclick=()=>authAction('signin');$('signOutBtn').onclick=async()=>{if(sb)await sb.auth.signOut();authUser=null;myProfile=null;playerId=crypto.randomUUID();playerName='PLAYER';await loadAccount();status('authStatus','ログアウトしました。')};
-$('soloMode').onclick=()=>openLocal('solo');$('multiMode').onclick=()=>{if(!initSupabase())return;gameMode='online';onlineKind='multi';setView('lobby');status('lobbyStatus','ルームを作成するか、相手のルームIDを入力してください。')};$('onlineMode').onclick=()=>setView('online');$('onlineBack').onclick=()=>setView('title');$('rankMode').onclick=()=>queueFor('rank');$('freeMode').onclick=()=>queueFor('free');$('friendMode').onclick=()=>{if(!initSupabase())return;gameMode='online';onlineKind='friend';setView('lobby')};
+$('soloMode').onclick=()=>{
+  $('soloSelect').style.display='flex';
+};
+
+$('soloItemOn').onclick=()=>{
+  $('soloSelect').style.display='none';
+  openLocal('solo',true);
+};
+
+$('soloItemOff').onclick=()=>{
+  $('soloSelect').style.display='none';
+  openLocal('solo',false);
+};
+
+$('soloSelectBack').onclick=()=>{
+  $('soloSelect').style.display='none';
+};$('multiMode').onclick=()=>{if(!initSupabase())return;gameMode='online';onlineKind='multi';setView('lobby');status('lobbyStatus','ルームを作成するか、相手のルームIDを入力してください。')};$('onlineMode').onclick=()=>setView('online');$('onlineBack').onclick=()=>setView('title');$('rankMode').onclick=()=>queueFor('rank');$('freeMode').onclick=()=>queueFor('free');$('friendMode').onclick=()=>{if(!initSupabase())return;gameMode='online';onlineKind='friend';setView('lobby')};
 
 function action(a){
+ if(itemClearAnimation)return;
  if(a==='left')move(-1);
  if(a==='right')move(1);
  if(a==='down')softDrop();
@@ -777,6 +1323,10 @@ document.addEventListener('keydown',e=>{
  if(e.key==='s'||e.key==='S')action('rotate180');
  if(e.key==='c'||e.key==='C')action('hold');
  if(e.key==='p'||e.key==='P')action('pause');
+if(e.key==='v'||e.key==='V'){
+  e.preventDefault();
+  useSoloItem();
+}
  if(e.key==='r'||e.key==='R'){if(started&&!finished)retryCurrentGame()}
 });
 document.querySelectorAll('[data-action]').forEach(b=>{const a=b.dataset.action;b.addEventListener('pointerdown',e=>{e.preventDefault();action(a)})});
@@ -785,32 +1335,123 @@ let touchStart=null,lastTap=0,tapTimer=null;canvas.style.touchAction='none';canv
 canvas.addEventListener('pointerup',e=>{if(!touchStart)return;const dx=e.clientX-touchStart.x,dy=e.clientY-touchStart.y,dist=Math.hypot(dx,dy);if(dist>22){if(Math.abs(dx)>Math.abs(dy)){const n=Math.max(1,Math.min(5,Math.round(Math.abs(dx)/38)));for(let i=0;i<n;i++)action(dx<0?'left':'right')}else if(dy>22){const n=Math.max(1,Math.min(8,Math.round(dy/42)));for(let i=0;i<n;i++)action('down')}/* upward flick intentionally does nothing */}else{const now=Date.now();if(now-lastTap<300){if(tapTimer)clearTimeout(tapTimer);tapTimer=null;action('drop');lastTap=0}else{lastTap=now;tapTimer=setTimeout(()=>{action('rotateCW');tapTimer=null},300)}}touchStart=null;});
 canvas.addEventListener('pointercancel',()=>touchStart=null);
 
+
+
+
 function update(time=0){
- const delta=time-lastTime;lastTime=time;
- if(started&&!paused&&!gameOver){
-  dropCounter+=delta;
-  if(dropCounter>dropInterval){softDrop();dropCounter=0}
- }
- if(started&&cpuMode&&!finished){
-  cpuClock+=delta;
-  if(cpuClock>850){
-   cpuClock=0;remote.score+=Math.floor(20+Math.random()*90);
-   remote.lines+=Math.random()<.32?1:0;
-   const row=Array(COLS).fill('#'+['ff36d1','8c5cff','00c9ff'][Math.floor(Math.random()*3)]);
-   row[Math.floor(Math.random()*COLS)]=0;remote.board.shift();remote.board.push(row);
-   if(remote.board[0].some(Boolean))remote.board.shift();drawEnemy();
+  const delta=lastTime ? time-lastTime : 0;
+  lastTime=time;
+
+  updateSoloItemUI();
+
+  // アイテムのライン消去アニメーション
+  if(itemClearAnimation){
+    const now=Date.now();
+
+    if(now-itemClearAnimation.lastStep>=itemClearAnimation.interval){
+      itemClearAnimation.lastStep=now;
+
+      // 今回消える列に通常と同じ爆発エフェクトを発生
+      const col=itemClearAnimation.col;
+
+      itemClearAnimation.rows.forEach(r=>{
+        const value=board[r]?.[col];
+        if(value){
+          spawnExplosion(col,r,"#00f7ff");
+        }
+      });
+
+      itemClearAnimation.col++;
+
+      if(itemClearAnimation.col>=COLS){
+        finishSoloItemClearAnimation();
+      }
+    }
   }
- }
- draw();
- if(started&&channel){sendTimer+=delta;if(sendTimer>120){publishState();sendTimer=0}}
- requestAnimationFrame(update);
+
+  // 通常のブロック落下
+  if(started&&!paused&&!gameOver&&!itemClearAnimation){
+    dropCounter+=delta;
+
+    if(dropCounter>dropInterval){
+      softDrop();
+      dropCounter=0;
+    }
+  }
+
+  // CPU処理
+  if(started&&cpuMode&&!finished){
+    cpuClock+=delta;
+
+    if(cpuClock>850){
+      cpuClock=0;
+      remote.score+=Math.floor(20+Math.random()*90);
+      remote.lines+=Math.random()<.32?1:0;
+
+      const row=Array(COLS).fill(
+        '#'+['ff36d1','8c5cff','00c9ff'][
+          Math.floor(Math.random()*3)
+        ]
+      );
+
+      row[Math.floor(Math.random()*COLS)]=0;
+      remote.board.shift();
+      remote.board.push(row);
+
+      if(remote.board[0].some(Boolean)){
+        remote.board.shift();
+      }
+
+      drawEnemy();
+    }
+  }
+
+  draw();
+
+  // オンライン状態の送信
+  if(started&&channel){
+    sendTimer+=delta;
+
+    if(sendTimer>120){
+      publishState();
+      sendTimer=0;
+    }
+  }
+
+  requestAnimationFrame(update);
 }
-// プレイヤー名のみ保存。接続情報はHTML側に固定し、ゲーム開始時の設定画面をなくす。
+
+// プレイヤー名の読み込み
 playerName=localStorage.getItem('bn_name')||'PLAYER';
-$('myName').textContent=playerName;setView('title');
-// タイトル画面中も描画処理が参照する盤面を先に初期化
-initGame();started=false;gameOver=false;finished=false;resetRemote();
-if(SUPABASE_URL.startsWith('https://')&&!SUPABASE_ANON_KEY.includes('PASTE_YOUR_')){initSupabase();sb.auth.getSession().then(async({data})=>{authUser=data.session?.user||null;if(authUser){playerId=authUser.id;await loadAccount()}})}
+$('myName').textContent=playerName;
+setView('title');
+
+// タイトル画面中も盤面を初期化
+initGame();
+started=false;
+gameOver=false;
+finished=false;
+resetRemote();
+
+// Supabase初期化・ログイン状態復元
+if(
+  SUPABASE_URL.startsWith('https://') &&
+  !SUPABASE_ANON_KEY.includes('PASTE_YOUR_')
+){
+  initSupabase();
+
+  sb.auth.getSession().then(async({data})=>{
+    authUser=data.session?.user||null;
+
+    if(authUser){
+      playerId=authUser.id;
+      await loadAccount();
+    }
+  });
+}
+
+// ゲームループ開始
 requestAnimationFrame(update);
+
 })();
 </script></body></html>
