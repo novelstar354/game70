@@ -50,6 +50,18 @@ button,input{font:inherit}button{border:1px solid #00ddeb;background:linear-grad
 .account-actions{display:flex;gap:8px;flex-wrap:wrap}
 .account-actions button{flex:1}
 @media(max-width:650px){.account-grid{grid-template-columns:1fr}#accountScreen{margin-top:12px}.profile-stat strong{font-size:18px}}
+#adminScreen{display:none;max-width:1100px;margin:20px auto;padding:0 14px 30px}
+.admin-box{background:var(--panel);border:1px solid #18394e;border-radius:16px;padding:18px;margin-bottom:14px}
+.admin-table-wrap{overflow-x:auto}
+#adminTable{width:100%;border-collapse:collapse;font-size:12px;min-width:760px}
+#adminTable th,#adminTable td{padding:9px 7px;border-bottom:1px solid #20384a;text-align:left;vertical-align:middle}
+#adminTable th{color:#83b6c8}
+.admin-actions{display:flex;gap:6px;flex-wrap:wrap}
+.admin-actions input{min-width:90px;width:100px;padding:8px}
+.admin-actions button{padding:8px 10px;font-size:11px}
+.admin-ban{border-color:#a32b55;background:#351020}
+.admin-unban{border-color:#168a70;background:#0b3029}
+#adminStatus{white-space:pre-wrap;min-height:22px;color:#9fefff;font-size:13px;margin-top:10px}
 
 </style></head>
 <body>
@@ -112,11 +124,32 @@ button,input{font:inherit}button{border:1px solid #00ddeb;background:linear-grad
     </div>
   </div>
   <div class="account-box" style="margin-top:14px">
-    <div class="rowline"><h2>GLOBAL LEADERBOARD</h2><button id="refreshLeaderboard">更新</button></div>
+    <div class="rowline"><h2>GLOBAL LEADERBOARD</h2><div class="account-actions"><button id="adminOpen" class="pink" style="display:none">ADMIN PANEL</button><button id="refreshLeaderboard">更新</button></div></div>
     <div style="overflow-x:auto"><table id="leaderboard"><thead><tr><th>順位</th><th>プレイヤー</th><th>ランク</th><th>レート</th><th>勝利</th></tr></thead><tbody id="leaderboardBody"><tr><td colspan="5" class="muted">ログイン後に表示します。</td></tr></tbody></table></div>
   </div>
 </section>
 
+<section id="adminScreen">
+  <div class="admin-box">
+    <div class="rowline"><h2 style="color:var(--neon);margin:0">ADMIN PANEL</h2><button id="adminBack" class="subtle">アカウント画面へ戻る</button></div>
+    <p class="muted">アカウント管理・レート変更・BAN管理。操作は管理者権限でサーバー側検証されます。</p>
+    <div class="rowline" style="margin:12px 0;flex-wrap:wrap">
+      <input id="adminSearch" placeholder="ユーザー名・UUIDで検索" style="max-width:420px">
+      <button id="adminRefresh">一覧を更新</button>
+    </div>
+    <div class="admin-table-wrap">
+      <table id="adminTable">
+        <thead><tr><th>アカウント</th><th>UUID</th><th>レート</th><th>勝利</th><th>敗北</th><th>状態</th><th>管理操作</th></tr></thead>
+        <tbody id="adminAccountsBody"><tr><td colspan="7">管理者確認後に読み込みます。</td></tr></tbody>
+      </table>
+    </div>
+    <div id="adminStatus"></div>
+  </div>
+  <div class="admin-box">
+    <div class="rowline"><h2 style="color:var(--neon);margin:0">ADMIN LOGS</h2><button id="adminLogsRefresh">履歴を更新</button></div>
+    <div class="admin-table-wrap"><table id="adminTable"><thead><tr><th>日時</th><th>操作</th><th>対象UUID</th><th>変更前</th><th>変更後</th><th>理由</th></tr></thead><tbody id="adminLogsBody"><tr><td colspan="6">未読み込み</td></tr></tbody></table></div>
+  </div>
+</section>
 <section id="onlineMenu"><div class="menu-card"><h2 style="color:var(--neon);letter-spacing:3px">ONLINE</h2><div class="menu-buttons"><button id="rankMode">RANK MATCH</button><button id="freeMode" class="pink">FREE MATCH</button><button id="friendMode" class="subtle">FRIEND MATCH</button><button id="onlineBack" class="subtle">戻る</button></div><p class="menu-note">ランク：同じモードのプレイヤーと自動マッチング<br>フリー：待ち時間終了後はCPU戦に切り替え可能<br>フレンド：ルームIDで友達と対戦</p></div></section>
 <section id="lobby">
 <div class="lobby-box"><h2>ROOM MATCH</h2><div class="actions"><button id="createRoom">ルームを作成</button></div><p class="muted">ルームを作成すると6桁のルームIDが発行されます。相手にIDを共有してください。</p></div>
@@ -179,7 +212,7 @@ const colors={
  T:'#c400ff',
  Z:'#ff0044'
 };
-let sb=null,authUser=null,myProfile=null,channel=null,queueChannel=null,queueTimer=null,roomId='',playerId=crypto.randomUUID(),playerName='PLAYER',opponentId=null,opponentUserId=null,opponentName='OPPONENT',isHost=false,started=false,finished=false,gameMode='solo',onlineKind='',cpuMode=false,cpuClock=0,resultRecorded=false,remote={board:Array.from({length:ROWS},()=>Array(COLS).fill(0)),score:0,lines:0,combo:0,gameOver:false};
+let sb=null,authUser=null,myProfile=null,isAdmin=false,adminAccounts=[],channel=null,queueChannel=null,queueTimer=null,roomId='',playerId=crypto.randomUUID(),playerName='PLAYER',opponentId=null,opponentUserId=null,opponentName='OPPONENT',isHost=false,started=false,finished=false,gameMode='solo',onlineKind='',cpuMode=false,cpuClock=0,resultRecorded=false,remote={board:Array.from({length:ROWS},()=>Array(COLS).fill(0)),score:0,lines:0,combo:0,gameOver:false};
 let board,current,next,hold=null,x=3,y=0,score=0,combo=0,
 linesCleared=0,level=1,lockTimer=0,garbageReceived=0,
 dropInterval=800,dropCounter=0,lastTime=0,
@@ -189,9 +222,7 @@ effectTimer=0,effectText='',gameOver=false,
 paused=false,backToBack=false,lastNet=0,sendTimer=0;
 const canvas=$('game'),ctx=canvas.getContext('2d'),enemyCanvas=$('enemyGame'),enemyCtx=enemyCanvas.getContext('2d'),nextCtx=$('next').getContext('2d'),holdCtx=$('hold').getContext('2d');
 function status(id,msg){$(id).textContent=msg}
-function setView(view){$('titleScreen').style.display=view==='title'?'flex':'none';$('accountScreen').style.display=view==='account'?'block':'none';$('onlineMenu').style.display=view==='online'?'flex':'none';$('lobby').style.display=view==='lobby'?'block':'none';$('gameArea').style.display=view==='game'?'block':'none'}
-
-// 全15種類のミノを出現対象にする
+function setView(view){$('adminScreen').style.display='none';$('titleScreen').style.display=view==='title'?'flex':'none';$('accountScreen').style.display=view==='account'?'block':'none';$('onlineMenu').style.display=view==='online'?'flex':'none';$('lobby').style.display=view==='lobby'?'block':'none';$('gameArea').style.display=view==='game'?'block':'none'}
 const STANDARD_PIECES = [
   'A', 'B', 'C', 'D', 'E','F', 'G', 'H', 'I', 'J', 'K','L','M','O', 'S', 'T', 'Z'
 ];
@@ -505,7 +536,7 @@ function startCPUFallback(){gameMode='online';cpuMode=true;started=true;finished
 function startFriend(){if(!initSupabase())return;gameMode='online';onlineKind='friend';setView('lobby');status('lobbyStatus','ルームを作成するか、友達のルームIDを入力してください。')}
 
 
-function rankName(r){if(r>=3300)return 'STAR'if(r>=3000)return 'UNREAL';if(r>=2700)return 'CHAMPION';if(r>=2400)return 'MASTER';if(r>=2100)return 'DIAMOND';if(r>=1800)return 'PLATINUM';if(r>=1500)return 'GOLD';if(r>=1200)return 'SILVER';return 'BRONZE'}
+function rankName(r){if(r>=3300)return 'STAR';if(r>=3000)return 'UNREAL';if(r>=2700)return 'CHAMPION';if(r>=2400)return 'MASTER';if(r>=2100)return 'DIAMOND';if(r>=1800)return 'PLATINUM';if(r>=1500)return 'GOLD';if(r>=1200)return 'SILVER';return 'BRONZE'}
 async function loadAccount(){
  if(!initSupabase())return;
  const {data:{session}}=await sb.auth.getSession();authUser=session?.user||null;
@@ -520,6 +551,7 @@ async function loadAccount(){
   $('authPlayerName').value=playerName;$('signOutBtn').disabled=false;
  }else{$('profileName').textContent='ゲスト';$('profileEmail').textContent='ログインしていません';$('profileRating').textContent='---';$('profileWins').textContent='0';$('profileLosses').textContent='0';$('profileRank').textContent='UNRANKED';$('profileExtra').textContent='アカウント登録またはログインしてください。';$('signOutBtn').disabled=true}
  await loadLeaderboard();
+  await checkAdminAccess();
 }
 async function loadLeaderboard(){
  if(!sb){$('leaderboardBody').innerHTML='<tr><td colspan="5">Supabase未接続</td></tr>';return}
@@ -537,6 +569,87 @@ async function recordMatchResult(won){
  if(data?.rating!==undefined){status('lobbyStatus',`戦績保存完了：${data.old_rating} → ${data.rating} (${data.delta>=0?'+':''}${data.delta})`);await loadAccount()}
 }
 
+
+
+async function checkAdminAccess(){
+  if(!sb||!authUser){isAdmin=false;$('adminOpen').style.display='none';return false}
+  const {data,error}=await sb.rpc('blocks_neon_is_admin');
+  isAdmin=!error&&data===true;
+  $('adminOpen').style.display=isAdmin?'inline-block':'none';
+  return isAdmin;
+}
+async function openAdminPanel(){
+  if(!authUser){status('adminStatus','先に管理者アカウントでログインしてください。');return}
+  status('adminStatus','管理者権限を確認しています...');
+  if(!await checkAdminAccess()){status('adminStatus','管理者権限がありません。');return}
+  $('accountScreen').style.display='none';
+  $('adminScreen').style.display='block';
+  await loadAdminAccounts();
+  await loadAdminLogs();
+}
+async function loadAdminAccounts(){
+  if(!await checkAdminAccess()){status('adminStatus','管理者権限がありません。');return}
+  status('adminStatus','アカウントを読み込み中...');
+  const {data,error}=await sb.rpc('blocks_neon_admin_accounts');
+  if(error){status('adminStatus','一覧取得エラー: '+error.message);return}
+  adminAccounts=Array.isArray(data)?data:[];
+  renderAdminAccounts();
+  status('adminStatus',adminAccounts.length+' 件のアカウントを読み込みました。');
+}
+function renderAdminAccounts(){
+  const q=($('adminSearch').value||'').trim().toLowerCase();
+  const rows=adminAccounts.filter(a=>
+    String(a.display_name||'').toLowerCase().includes(q)||
+    String(a.id||'').toLowerCase().includes(q)
+  );
+  $('adminAccountsBody').innerHTML=rows.map(a=>{
+    const id=escapeHtml(a.id||'');
+    const name=escapeHtml(a.display_name||'PLAYER');
+    const banned=!!a.is_banned;
+    return `<tr>
+      <td>${name}</td><td>${id}</td>
+      <td><input aria-label="新しいレート" id="rate-${id}" type="number" min="0" max="100000" value="${Number(a.rating)||0}" style="width:90px"></td>
+      <td>${Number(a.wins)||0}</td><td>${Number(a.losses)||0}</td>
+      <td>${banned?'<span style="color:#ff7090">BANNED</span>':'<span style="color:#7fffd4">ACTIVE</span>'}</td>
+      <td><div class="admin-actions">
+        <button data-admin-action="rating" data-id="${id}">レート保存</button>
+        ${banned
+          ? `<button class="admin-unban" data-admin-action="unban" data-id="${id}">REMOVE BAN</button>`
+          : `<input id="reason-${id}" placeholder="BAN理由" aria-label="BAN理由"><button class="admin-ban" data-admin-action="ban" data-id="${id}">BAN</button>`}
+      </div></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="7">該当するアカウントがありません。</td></tr>';
+}
+async function runAdminAction(action,id){
+  if(!await checkAdminAccess()){status('adminStatus','管理者権限がありません。');return}
+  let result;
+  if(action==='rating'){
+    const value=Number($('rate-'+id)?.value);
+    if(!Number.isInteger(value)||value<0||value>100000){status('adminStatus','レートは0〜100000の整数で入力してください。');return}
+    result=await sb.rpc('blocks_neon_admin_set_rating',{p_target_user_id:id,p_new_rating:value,p_reason:'Admin panel'});
+  }else if(action==='ban'){
+    const reason=$('reason-'+id)?.value.trim()||'管理者によるBAN';
+    if(!confirm('このアカウントをBANしますか？'))return;
+    result=await sb.rpc('blocks_neon_admin_ban',{p_target_user_id:id,p_reason:reason});
+  }else if(action==='unban'){
+    if(!confirm('このアカウントのBANを解除しますか？'))return;
+    result=await sb.rpc('blocks_neon_admin_remove_ban',{p_target_user_id:id,p_reason:'管理画面から解除'});
+  }
+  if(result?.error){status('adminStatus','操作エラー: '+result.error.message);return}
+  status('adminStatus','操作が完了しました。');
+  await loadAdminAccounts();
+  await loadAdminLogs();
+}
+async function loadAdminLogs(){
+  if(!await checkAdminAccess())return;
+  const {data,error}=await sb.rpc('blocks_neon_admin_get_logs');
+  if(error){$('adminLogsBody').innerHTML='<tr><td colspan="6">履歴取得エラー: '+escapeHtml(error.message)+'</td></tr>';return}
+  $('adminLogsBody').innerHTML=(data||[]).map(l=>`<tr>
+    <td>${escapeHtml(l.created_at||'')}</td><td>${escapeHtml(l.action||'')}</td>
+    <td>${escapeHtml(l.target_user_id||'')}</td><td>${escapeHtml(l.old_value||'')}</td>
+    <td>${escapeHtml(l.new_value||'')}</td><td>${escapeHtml(l.reason||'')}</td>
+  </tr>`).join('')||'<tr><td colspan="6">操作履歴はありません。</td></tr>';
+}
 
 async function authAction(kind) {
   if (!initSupabase()) return;
@@ -637,7 +750,7 @@ $('createRoom').onclick=()=>{if(!initSupabase())return;const id=generateRoom();$
 $('joinRoom').onclick=()=>{if(!initSupabase())return;const id=$('roomInput').value.replace(/\D/g,'').slice(0,6);if(id.length!==6){status('lobbyStatus','6桁のルームIDを入力してください');return}connectAndJoin(id,false)};
 $('backLobby').onclick=async()=>{if(channel){try{await channel.untrack();await sb.removeChannel(channel)}catch(e){}channel=null}if(queueChannel&&sb){try{await sb.removeChannel(queueChannel)}catch(e){}queueChannel=null}if(queueTimer)clearTimeout(queueTimer);started=false;finished=false;cpuMode=false;$('result').style.display='none';setView('title')};
 $('retryGame').onclick=retryCurrentGame;
-$('accountMode').onclick=async()=>{setView('account');if(initSupabase())await loadAccount()};$('accountBack').onclick=()=>setView('title');$('refreshLeaderboard').onclick=loadLeaderboard;$('signUpBtn').onclick=()=>authAction('signup');$('signInBtn').onclick=()=>authAction('signin');$('signOutBtn').onclick=async()=>{if(sb)await sb.auth.signOut();authUser=null;myProfile=null;playerId=crypto.randomUUID();playerName='PLAYER';await loadAccount();status('authStatus','ログアウトしました。')};
+$('accountMode').onclick=async()=>{setView('account');if(initSupabase())await loadAccount()};$('adminOpen').onclick=openAdminPanel;$('adminBack').onclick=()=>{$('adminScreen').style.display='none';setView('account')};$('adminRefresh').onclick=loadAdminAccounts;$('adminLogsRefresh').onclick=loadAdminLogs;$('adminSearch').addEventListener('input',renderAdminAccounts);$('adminAccountsBody').addEventListener('click',e=>{const b=e.target.closest('button[data-admin-action]');if(b)runAdminAction(b.dataset.adminAction,b.dataset.id)});$('accountBack').onclick=()=>setView('title');$('refreshLeaderboard').onclick=loadLeaderboard;$('signUpBtn').onclick=()=>authAction('signup');$('signInBtn').onclick=()=>authAction('signin');$('signOutBtn').onclick=async()=>{if(sb)await sb.auth.signOut();authUser=null;myProfile=null;playerId=crypto.randomUUID();playerName='PLAYER';await loadAccount();status('authStatus','ログアウトしました。')};
 $('soloMode').onclick=()=>openLocal('solo');$('multiMode').onclick=()=>{if(!initSupabase())return;gameMode='online';onlineKind='multi';setView('lobby');status('lobbyStatus','ルームを作成するか、相手のルームIDを入力してください。')};$('onlineMode').onclick=()=>setView('online');$('onlineBack').onclick=()=>setView('title');$('rankMode').onclick=()=>queueFor('rank');$('freeMode').onclick=()=>queueFor('free');$('friendMode').onclick=()=>{if(!initSupabase())return;gameMode='online';onlineKind='friend';setView('lobby')};
 
 function action(a){
