@@ -386,6 +386,8 @@ const pieces={
  U:[[1,1],[1,1],[1,1],[1,1]],
  V:[[1,1],[1,1],[1,1],[1,1],[1,1]],
  W:[[1,1],[1,1],[1,1]],
+ X:[[1,0,1],[0,1,0],[1,0,1]],
+ Y:[[0,1,0],[1,0,1],[0,1,0]],
  Z:[[1,1,0],[0,1,1]]
 };
 const colors={
@@ -412,6 +414,8 @@ const colors={
  U:'#888567',
  V:'#a78eeb',
  W:'#cc93bf',
+ X:'#758dae',
+ Y:'#fc1fb7',
  Z:'#ff0044'
 };
 let sb=null,authUser=null,myProfile=null,isAdmin=false,adminAccounts=[],channel=null,queueChannel=null,queueTimer=null,roomId='',playerId=crypto.randomUUID(),playerName='PLAYER',opponentId=null,opponentUserId=null,opponentName='OPPONENT',isHost=false,started=false,finished=false,gameMode='solo',onlineKind='',cpuMode=false,cpuClock=0,resultRecorded=false,onlineAttackRule='items',remote={board:Array.from({length:ROWS},()=>Array(COLS).fill(0)),score:0,lines:0,combo:0,gameOver:false};
