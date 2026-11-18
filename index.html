@@ -324,12 +324,12 @@ button,input{font:inherit}button{border:1px solid #00ddeb;background:linear-grad
   </div>
   <div class="admin-box">
     <div class="rowline"><h2 style="color:var(--neon);margin:0">ADMIN LOGS</h2><button id="adminLogsRefresh">履歴を更新</button></div>
-    <div class="admin-table-wrap"><table id="adminTable"><thead><tr><th>日時</th><th>操作</th><th>対象UUID</th><th>変更前</th><th>変更後</th><th>理由</th></tr></thead><tbody id="adminLogsBody"><tr><td colspan="6">未読み込み</td></tr></tbody></table></div>
+    <div class="admin-table-wrap"><table id="adminLogsTable"><thead><tr><th>日時</th><th>操作</th><th>対象UUID</th><th>変更前</th><th>変更後</th><th>理由</th></tr></thead><tbody id="adminLogsBody"><tr><td colspan="6">未読み込み</td></tr></tbody></table></div>
   </div>
 </section>
 <section id="onlineMenu"><div class="menu-card"><h2 style="color:var(--neon);letter-spacing:3px">ONLINE</h2><div class="menu-buttons"><button id="rankMode">RANK MATCH</button><button id="freeMode" class="pink">FREE MATCH</button><button id="friendMode" class="subtle">FRIEND MATCH</button><button id="onlineBack" class="subtle">戻る</button></div><p class="menu-note">ランク：同じモードのプレイヤーと自動マッチング<br>フリー：待ち時間終了後はCPU戦に切り替え可能<br>フレンド：ルームIDで友達と対戦</p></div></section>
 <section id="lobby">
-<div class="lobby-box"><h2>ROOM MATCH</h2><div class="actions"><button id="createRoom">ルームを作成</button></div><p class="muted">ルームを作成すると6桁のルームIDが発行されます。相手にIDを共有してください。</p></div>
+<div class="lobby-box"><h2>ROOM MATCH</h2><div class="field"><label for="roomAttackRule">対戦ルールの希望</label><select id="roomAttackRule" style="width:100%;padding:11px;background:#07101c;border:1px solid #315064;border-radius:8px;color:#fff"><option value="items">アイテムあり</option><option value="noitems">アイテムなし</option></select><p class="muted" style="margin:6px 0 0">ホストとメンバーの希望が違う場合は、抽選で最終ルールを決定します。</p></div><div class="actions"><button id="createRoom">ルームを作成</button></div><p class="muted">ルームを作成すると6桁のルームIDが発行されます。相手にIDを共有してください。</p></div>
 <div class="lobby-box"><h2>JOIN ROOM</h2><div class="field"><label>ROOM ID</label><input id="roomInput" maxlength="6" inputmode="numeric" placeholder="例: 482915"></div><button id="joinRoom">ルームに参加</button> <button id="lobbyBack" class="small-link">戻る</button><div id="lobbyStatus" class="status"></div></div>
 </section>
 <section id="gameArea">
@@ -376,9 +376,16 @@ const pieces={
  K:[[1,0],[0,1]],
  L:[[0,0,1],[1,1,1]],
  M:[[0,1,1],[1,1,1],[1,1,0]],
+ N:[[1,0,0],[1,1,0],[1,1,1],[1,1,0],[1,0,0]],
  O:[[1,1],[1,1]],
+ P:[[1],[0],[1]],
+ Q:[[1],[1],[1],[1],[1]],
+ R:[[0,1,0],[1,1,1],[0,1,0]],
  S:[[0,1,1],[1,1,0]],
  T:[[0,1,0],[1,1,1]],
+ U:[[1,1],[1,1],[1,1],[1,1]],
+ V:[[1,1],[1,1],[1,1],[1,1],[1,1]],
+ W:[[1,1],[1,1],[1,1]],
  Z:[[1,1,0],[0,1,1]]
 };
 const colors={
@@ -395,12 +402,19 @@ const colors={
  K:'#fd33e7',
  L:'#ff8800',
  M:'#28e0b6',
+ N:'#53a286',
  O:'#ffe600',
+ P:'#d42b2b',
+ Q:'#18ca66',
+ R:'#abcc58',
  S:'#00ff88',
  T:'#c400ff',
+ U:'#888567',
+ V:'#a78eeb',
+ W:'#cc93bf',
  Z:'#ff0044'
 };
-let sb=null,authUser=null,myProfile=null,isAdmin=false,adminAccounts=[],channel=null,queueChannel=null,queueTimer=null,roomId='',playerId=crypto.randomUUID(),playerName='PLAYER',opponentId=null,opponentUserId=null,opponentName='OPPONENT',isHost=false,started=false,finished=false,gameMode='solo',onlineKind='',cpuMode=false,cpuClock=0,resultRecorded=false,remote={board:Array.from({length:ROWS},()=>Array(COLS).fill(0)),score:0,lines:0,combo:0,gameOver:false};
+let sb=null,authUser=null,myProfile=null,isAdmin=false,adminAccounts=[],channel=null,queueChannel=null,queueTimer=null,roomId='',playerId=crypto.randomUUID(),playerName='PLAYER',opponentId=null,opponentUserId=null,opponentName='OPPONENT',isHost=false,started=false,finished=false,gameMode='solo',onlineKind='',cpuMode=false,cpuClock=0,resultRecorded=false,onlineAttackRule='items',remote={board:Array.from({length:ROWS},()=>Array(COLS).fill(0)),score:0,lines:0,combo:0,gameOver:false};
 // ========================================
 // SOLO ITEM SYSTEM
 // ========================================
@@ -409,6 +423,8 @@ const SOLO_ITEM_TIME = 10000;
 
 let soloItemLines = 0;
 let soloItem = null;
+function itemModeActive(){ return (gameMode==='solo' && soloItemMode) || (gameMode==='online' && onlineAttackRule==='items'); }
+function itemModeLabel(){ return gameMode==='online' ? 'ONLINE ITEM' : 'SOLO ITEM'; }
 let soloItemExpires = 0;
 
 // アイテム効果でホールド中のミノを出す回数
@@ -475,12 +491,14 @@ function updateSoloItemUI(){
   const panel = $('soloItemPanel');
   if(!panel)return;
 
-  if(gameMode!=='solo'||!soloItemMode){
+  if(!itemModeActive()){
   panel.style.display='none';
   return;
 }
 
   panel.style.display='block';
+  const title=panel.querySelector('.soloItemTitle');
+  if(title)title.textContent=itemModeLabel();
 
   if(soloItem && Date.now() >= soloItemExpires){
     soloItem=null;
@@ -506,7 +524,7 @@ function updateSoloItemUI(){
 
 // 8ラインごとに抽選
 function onSoloLinesCleared(count){
-  if(gameMode!=='solo'||!soloItemMode||count<=0)return;
+  if(!itemModeActive()||count<=0)return;
 
   soloItemLines += count;
 
@@ -536,7 +554,7 @@ function onSoloLinesCleared(count){
 
 // アイテム使用
 function useSoloItem(){
-  if(gameMode!=='solo'||!soloItemMode||!started||paused||gameOver)return;
+  if(!itemModeActive()||!started||paused||gameOver)return;
   if(!soloItem)return;
 
   if(Date.now() >= soloItemExpires){
@@ -547,6 +565,7 @@ function useSoloItem(){
   }
 
   const item=soloItem;
+  if(gameMode==='online' && channel) send('item_use',{itemId:item.id,itemName:item.name});
 
   // =================================
   // HOLD ITEM
@@ -676,7 +695,7 @@ function status(id,msg){$(id).textContent=msg}
 function setView(view){$('adminScreen').style.display='none';$('titleScreen').style.display=view==='title'?'flex':'none';$('accountScreen').style.display=view==='account'?'block':'none';$('onlineMenu').style.display=view==='online'?'flex':'none';$('lobby').style.display=view==='lobby'?'block':'none';$('gameArea').style.display=view==='game'?'block':'none'}
 
 const STANDARD_PIECES = [
-  'A', 'B', 'C', 'D', 'E','F', 'G', 'H', 'I', 'J', 'K','L','M','O', 'S', 'T', 'Z'
+  'A', 'B', 'C', 'D', 'E','F', 'G', 'H', 'I', 'J', 'K','L','M','N', 'O', 'P', 'Q', 'R', 'S', 'T','U', 'V', 'W',  'Z'
 ];
 
 // 15-bag方式
@@ -802,7 +821,8 @@ onSoloLinesCleared(lines);
   linesCleared+=lines;
   // Online-only garbage attack. It does not alter solo scoring or line-clear rules.
   if(gameMode==="online"&&!cpuMode&&channel){
-   const attack=lines===4?4:lines===3?2:lines===2?1:0;
+   const baseAttack=lines===4?4:lines===3?2:lines===2?1:0;
+   const attack=onlineAttackRule==='strong'?baseAttack*2:onlineAttackRule==='light'?Math.ceil(baseAttack/2):baseAttack;
    if(attack)sendAttack(attack);
   }
  }else{combo=0;backToBack=false}
@@ -1025,15 +1045,25 @@ function receiveAttack(p){
   updateUI();
   publishState();
 }
+function receiveItemUse(p){if(!p||p.from===playerId||gameMode!=='online')return;effectText='OPPONENT ITEM: '+(p.itemName||'ITEM');effectTimer=40;draw()}
 function sendResult(won,scoreVal){send('game_end',{won,score:scoreVal})}
 function resetRemote(){remote={board:Array.from({length:ROWS},()=>Array(COLS).fill(0)),score:0,lines:0,combo:0,gameOver:false};drawEnemy()}
-async function connectAndJoin(code,host){if(!sb){status('lobbyStatus','Supabaseに接続してください');return}roomId=code;isHost=host;status('lobbyStatus','ルームに接続しています...');if(channel){await sb.removeChannel(channel);channel=null}
- channel=sb.channel('blocks-neon-'+roomId,{config:{broadcast:{self:false},presence:{key:playerId}}});
- channel.on('presence',{event:'sync'},()=>{const state=channel.presenceState();const ids=Object.keys(state);const others=ids.filter(id=>id!==playerId);if(ids.length>2){status('lobbyStatus','このルームは満員です（最大2人）');sb.removeChannel(channel);channel=null;return}if(others.length){opponentId=others[0];const meta=state[opponentId]?.[0]||{};opponentName=meta.name||'OPPONENT';opponentUserId=meta.userId||null;$('enemyName').textContent=opponentName;$('connection').textContent='相手と接続';status('lobbyStatus','対戦相手が参加しました。対戦を開始します！');startMatch()}else{$('enemyName').textContent='WAITING...';$('connection').textContent='相手を待っています';status('lobbyStatus','ルームを作成しました。ROOM IDを相手に共有してください。')}});
- channel.on('broadcast',{event:'state'},({payload})=>receiveState(payload));channel.on('broadcast',{event:'attack'},({payload})=>receiveAttack(payload));channel.on('broadcast',{event:'game_end'},({payload})=>{if(payload?.from!==playerId&&!finished){finished=true;gameOver=true;recordMatchResult(true);showResult('VICTORY','相手がゲームオーバーになりました。あなたの勝ちです！')}});channel.on('broadcast',{event:'restart'},({payload})=>{if(payload?.from!==playerId){started=true;finished=false;resultRecorded=false;initGame();resetRemote();$('result').style.display='none';setView('game');status('lobbyStatus','再戦を開始しました')}});
- channel.subscribe(async s=>{if(s==='SUBSCRIBED'){await channel.track({name:playerName,userId:authUser?.id||null,joinedAt:Date.now()});$('roomLabel').textContent='ROOM '+roomId;gameMode='online';$('modeLabel').textContent=(onlineKind||'FRIEND').toUpperCase();setView('game');$('myName').textContent=playerName;status('lobbyStatus','接続しました。相手の参加を待っています...')}})
+function resolveItemRule(hostPref,memberPref,hostId,memberId){
+ const h=hostPref==='noitems'?'noitems':'items', m=memberPref==='noitems'?'noitems':'items';
+ if(h===m)return h;
+ // pair-based deterministic lottery: both clients derive the same result
+ const seed=[String(hostId||''),String(memberId||'')].sort().join('|');
+ let hash=2166136261;for(let i=0;i<seed.length;i++){hash^=seed.charCodeAt(i);hash=Math.imul(hash,16777619)>>>0;}
+ return (hash%2===0)?'items':'noitems';
 }
-function startMatch(){soloItemMode=false;if(started&&gameMode==='online'&&!finished)return;started=true;finished=false;resultRecorded=false;cpuMode=false;$('modeLabel').textContent=(onlineKind||'FRIEND').toUpperCase();$('soloItemPanel').style.display='none';$('gameArea').querySelector('.arena').classList.remove('single');initGame();resetRemote();setView('game');$('myName').textContent=playerName;$('enemyName').textContent=opponentName;$('connection').textContent='対戦中';publishState()}
+function itemRuleLabel(rule){return rule==='noitems'?'アイテムなし':'アイテムあり';}
+async function connectAndJoin(code,host,roomRule=onlineAttackRule){if(!sb){status('lobbyStatus','Supabaseに接続してください');return}roomId=code;isHost=host;onlineAttackRule=roomRule||'standard';status('lobbyStatus','ルームに接続しています...');if(channel){await sb.removeChannel(channel);channel=null}
+ channel=sb.channel('blocks-neon-'+roomId,{config:{broadcast:{self:false},presence:{key:playerId}}});
+ channel.on('presence',{event:'sync'},()=>{const state=channel.presenceState();const ids=Object.keys(state);const others=ids.filter(id=>id!==playerId);if(ids.length>2){status('lobbyStatus','このルームは満員です（最大2人）');sb.removeChannel(channel);channel=null;return}if(others.length){opponentId=others[0];const meta=state[opponentId]?.[0]||{};const mine=state[playerId]?.[0]||{};opponentName=meta.name||'OPPONENT';opponentUserId=meta.userId||null;const hostId=isHost?playerId:opponentId,memberId=isHost?opponentId:playerId;const hostMeta=state[hostId]?.[0]||{},memberMeta=state[memberId]?.[0]||{};onlineAttackRule=resolveItemRule(hostMeta.rulePreference||'items',memberMeta.rulePreference||'items',hostId,memberId);$('enemyName').textContent=opponentName;$('connection').textContent='相手と接続';status('lobbyStatus','対戦相手が参加しました。決定ルール：'+itemRuleLabel(onlineAttackRule));startMatch()}else{$('enemyName').textContent='WAITING...';$('connection').textContent='相手を待っています';status('lobbyStatus','ルームを作成しました。ROOM IDを相手に共有してください。')}});
+ channel.on('broadcast',{event:'state'},({payload})=>receiveState(payload));channel.on('broadcast',{event:'attack'},({payload})=>receiveAttack(payload));channel.on('broadcast',{event:'item_use'},({payload})=>receiveItemUse(payload));channel.on('broadcast',{event:'game_end'},({payload})=>{if(payload?.from!==playerId&&!finished){finished=true;gameOver=true;recordMatchResult(true);showResult('VICTORY','相手がゲームオーバーになりました。あなたの勝ちです！')}});channel.on('broadcast',{event:'restart'},({payload})=>{if(payload?.from!==playerId){started=true;finished=false;resultRecorded=false;initGame();resetRemote();$('result').style.display='none';setView('game');status('lobbyStatus','再戦を開始しました')}});
+ channel.subscribe(async s=>{if(s==='SUBSCRIBED'){await channel.track({name:playerName,userId:authUser?.id||null,joinedAt:Date.now(),rulePreference:onlineAttackRule});$('roomLabel').textContent='ROOM '+roomId;gameMode='online';$('modeLabel').textContent=(onlineKind||'FRIEND').toUpperCase();setView('game');$('myName').textContent=playerName;status('lobbyStatus','接続しました。希望ルール：'+itemRuleLabel(onlineAttackRule)+'。相手の参加を待っています...')}})
+}
+function startMatch(){soloItemMode=false;if(started&&gameMode==='online'&&!finished)return;started=true;finished=false;resultRecorded=false;cpuMode=false;$('modeLabel').textContent=(onlineKind||'FRIEND').toUpperCase()+' · '+(onlineAttackRule==='noitems'?'ITEM OFF':'ITEM ON');$('soloItemPanel').style.display=onlineAttackRule==='items'?'block':'none';$('gameArea').querySelector('.arena').classList.remove('single');initGame();resetRemote();setView('game');$('myName').textContent=playerName;$('enemyName').textContent=opponentName;$('connection').textContent='対戦中';publishState()}
 function generateRoom(){return String(Math.floor(100000+Math.random()*900000))}
 function initSupabase(){if(sb)return true;if(!SUPABASE_URL.startsWith('https://')||SUPABASE_ANON_KEY.includes('PASTE_YOUR_')){alert('管理者による初回設定が必要です。配布前にHTML内のSUPABASE_URLとSUPABASE_ANON_KEYへSupabaseのProject URLとPublishable keyを設定してください。');return false}try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{realtime:{params:{eventsPerSecond:30}}});return true}catch(e){alert('Supabase接続エラー: '+e.message);return false}}
 function openLocal(mode,itemMode=false){soloItemMode = mode==='solo' && itemMode;gameMode=mode;onlineKind='';cpuMode=false;started=true;finished=false;resultRecorded=false;opponentName='';$('modeLabel').textContent =
@@ -1041,7 +1071,7 @@ function openLocal(mode,itemMode=false){soloItemMode = mode==='solo' && itemMode
     ? (soloItemMode?'SOLO · ITEM ON':'SOLO · ITEM OFF')
     : 'LOCAL MULTI';$('soloItemPanel').style.display =
   soloItemMode ? 'block' : 'none';$('enemyName').textContent='';$('connection').textContent='LOCAL';$('roomLabel').textContent='';$('gameArea').querySelector('.arena').classList.toggle('single',mode==='solo');$('gameSideDummy');setView('game');$('myName').textContent=playerName;resetRemote();initGame();if(mode==='multi'){opponentName='CPU';cpuMode=true;$('enemyName').textContent='CPU';$('connection').textContent='CPU BATTLE';$('gameArea').querySelector('.arena').classList.remove('single')} }
-async function queueFor(kind){if(!initSupabase())return;if(kind==='rank'&&!authUser){setView('account');status('authStatus','ランクマッチにはログインが必要です。');return}onlineKind=kind;gameMode='online';cpuMode=false;status('lobbyStatus',kind.toUpperCase()+' マッチング中...');setView('lobby');if(queueChannel){await sb.removeChannel(queueChannel);queueChannel=null}queueChannel=sb.channel('blocks-neon-queue-'+kind,{config:{presence:{key:playerId},broadcast:{self:false}}});queueChannel.on('presence',{event:'sync'},async()=>{if(!queueChannel)return;const ids=Object.keys(queueChannel.presenceState()).sort();if(ids.length>=2&&ids.includes(playerId)){const pair=ids.slice(0,2);if(!pair.includes(playerId))return;const code=''+Array.from(pair.join('').replace(/-/g,'')).reduce((a,c)=>((a*31+c.charCodeAt(0))>>>0),7).toString().slice(-6).padStart(6,'0');if(queueTimer){clearTimeout(queueTimer);queueTimer=null}const host=pair[0]===playerId;await sb.removeChannel(queueChannel);queueChannel=null;connectAndJoin(code,host)}});queueChannel.subscribe(async st=>{if(st==='SUBSCRIBED'){await queueChannel.track({name:playerName,userId:authUser?.id||null,kind,at:Date.now()});status('lobbyStatus','対戦相手を探しています...');if(kind==='free'){queueTimer=setTimeout(()=>{if(!started){if(queueChannel){sb.removeChannel(queueChannel);queueChannel=null}startCPUFallback()}},15000)}}});}
+async function queueFor(kind){if(!initSupabase())return;if(kind==='rank'&&!authUser){setView('account');status('authStatus','ランクマッチにはログインが必要です。');return}onlineKind=kind;gameMode='online';cpuMode=false;status('lobbyStatus',kind.toUpperCase()+' マッチング中...');setView('lobby');if(queueChannel){await sb.removeChannel(queueChannel);queueChannel=null}queueChannel=sb.channel('blocks-neon-queue-'+kind,{config:{presence:{key:playerId},broadcast:{self:false}}});queueChannel.on('presence',{event:'sync'},async()=>{if(!queueChannel)return;const ids=Object.keys(queueChannel.presenceState()).sort();if(ids.length>=2&&ids.includes(playerId)){const pair=ids.slice(0,2);if(!pair.includes(playerId))return;const code=''+Array.from(pair.join('').replace(/-/g,'')).reduce((a,c)=>((a*31+c.charCodeAt(0))>>>0),7).toString().slice(-6).padStart(6,'0');if(queueTimer){clearTimeout(queueTimer);queueTimer=null}const host=pair[0]===playerId;const hostMeta=(queueChannel.presenceState()[pair[0]]||[])[0]||{};const memberMeta=(queueChannel.presenceState()[pair[1]]||[])[0]||{};const sharedRule=resolveItemRule(hostMeta.rulePreference||'items',memberMeta.rulePreference||'items',pair[0],pair[1]);await sb.removeChannel(queueChannel);queueChannel=null;connectAndJoin(code,host,sharedRule)}});queueChannel.subscribe(async st=>{if(st==='SUBSCRIBED'){await queueChannel.track({name:playerName,userId:authUser?.id||null,kind,rulePreference:onlineAttackRule,at:Date.now()});status('lobbyStatus','対戦相手を探しています...');if(kind==='free'){queueTimer=setTimeout(()=>{if(!started){if(queueChannel){sb.removeChannel(queueChannel);queueChannel=null}startCPUFallback()}},15000)}}});}
 function startCPUFallback(){
   soloItemMode=false;
   gameMode='online';
@@ -1275,8 +1305,8 @@ function retryCurrentGame(){
 }
 
 $('lobbyBack').onclick=()=>setView('online');
-$('createRoom').onclick=()=>{if(!initSupabase())return;const id=generateRoom();$('roomInput').value=id;connectAndJoin(id,true)};
-$('joinRoom').onclick=()=>{if(!initSupabase())return;const id=$('roomInput').value.replace(/\D/g,'').slice(0,6);if(id.length!==6){status('lobbyStatus','6桁のルームIDを入力してください');return}connectAndJoin(id,false)};
+$('createRoom').onclick=()=>{if(!initSupabase())return;onlineAttackRule=$('roomAttackRule')?.value||'items';const id=generateRoom();$('roomInput').value=id;connectAndJoin(id,true,onlineAttackRule)};
+$('joinRoom').onclick=()=>{if(!initSupabase())return;const id=$('roomInput').value.replace(/\D/g,'').slice(0,6);if(id.length!==6){status('lobbyStatus','6桁のルームIDを入力してください');return}connectAndJoin(id,false,$('roomAttackRule')?.value||'items')};
 $('backLobby').onclick=async()=>{if(channel){try{await channel.untrack();await sb.removeChannel(channel)}catch(e){}channel=null}if(queueChannel&&sb){try{await sb.removeChannel(queueChannel)}catch(e){}queueChannel=null}if(queueTimer)clearTimeout(queueTimer);started=false;finished=false;cpuMode=false;$('result').style.display='none';setView('title')};
 $('retryGame').onclick=retryCurrentGame;
 $('accountMode').onclick=async()=>{setView('account');if(initSupabase())await loadAccount()};$('adminOpen').onclick=openAdminPanel;$('adminBack').onclick=()=>{$('adminScreen').style.display='none';setView('account')};$('adminRefresh').onclick=loadAdminAccounts;$('adminLogsRefresh').onclick=loadAdminLogs;$('adminSearch').addEventListener('input',renderAdminAccounts);$('adminAccountsBody').addEventListener('click',e=>{const b=e.target.closest('button[data-admin-action]');if(b)runAdminAction(b.dataset.adminAction,b.dataset.id)});$('accountBack').onclick=()=>setView('title');$('refreshLeaderboard').onclick=loadLeaderboard;$('signUpBtn').onclick=()=>authAction('signup');$('signInBtn').onclick=()=>authAction('signin');$('signOutBtn').onclick=async()=>{if(sb)await sb.auth.signOut();authUser=null;myProfile=null;playerId=crypto.randomUUID();playerName='PLAYER';await loadAccount();status('authStatus','ログアウトしました。')};
