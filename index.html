@@ -378,7 +378,7 @@ button,input{font:inherit}button{border:1px solid #00ddeb;background:linear-grad
     <p class="muted admin-log-footnote">※ 表示される項目は、データベースに保存された操作履歴に基づきます。</p>
   </div>
 </section>
-<section id="onlineMenu"><div class="menu-card"><h2 style="color:var(--neon);letter-spacing:3px">ONLINE</h2><div class="menu-buttons"><button id="rankMode">RANK MATCH</button><button id="freeMode" class="pink">FREE MATCH</button><button id="friendMode" class="subtle">FRIEND MATCH</button><button id="onlineBack" class="subtle">戻る</button></div><p class="menu-note">ランク：同じモードのプレイヤーと自動マッチング<br>フリー：待ち時間終了後はCPU戦に切り替え可能<br>フレンド：ルームIDで友達と対戦</p></div></section>
+<section id="onlineMenu"><div class="menu-card"><h2 style="color:var(--neon);letter-spacing:3px">ONLINE</h2><div class="menu-buttons"><button id="rankMode">RANK MATCH</button><button id="freeMode" class="pink">FREE MATCH</button><button id="friendMode" class="subtle">FRIEND MATCH</button><button id="onlineBack" class="subtle">戻る</button></div><p class="menu-note">ランク：ルームIDで参加。自分と同じランク帯の相手とのみ対戦できます。<br>フリー：待ち時間終了後はCPU戦に切り替え可能<br>フレンド：ルームIDで友達と対戦</p></div></section>
 <section id="lobby">
 <div class="lobby-box"><h2>ROOM MATCH</h2><div class="field"><label for="roomAttackRule">対戦ルールの希望</label><select id="roomAttackRule" style="width:100%;padding:11px;background:#07101c;border:1px solid #315064;border-radius:8px;color:#fff"><option value="items">アイテムあり</option><option value="noitems">アイテムなし</option></select><p class="muted" style="margin:6px 0 0">ホストとメンバーの希望が違う場合は、抽選で最終ルールを決定します。</p></div><div class="actions"><button id="createRoom">ルームを作成</button></div><p class="muted">ルームを作成すると6桁のルームIDが発行されます。相手にIDを共有してください。</p></div>
 <div class="lobby-box"><h2>JOIN ROOM</h2><div class="field"><label>ROOM ID</label><input id="roomInput" maxlength="6" inputmode="numeric" placeholder="例: 482915"></div><button id="joinRoom">ルームに参加</button> <button id="lobbyBack" class="small-link">戻る</button><div id="lobbyStatus" class="status"></div></div>
@@ -469,7 +469,7 @@ const colors={
  Y:'#fc1fb7',
  Z:'#ff0044'
 };
-let sb=null,authUser=null,myProfile=null,isAdmin=false,adminAccounts=[],channel=null,queueChannel=null,queueTimer=null,roomId='',playerId=crypto.randomUUID(),playerName='PLAYER',opponentId=null,opponentUserId=null,opponentName='OPPONENT',isHost=false,started=false,finished=false,gameMode='solo',onlineKind='',cpuMode=false,cpuClock=0,resultRecorded=false,onlineAttackRule='items',remote={board:Array.from({length:ROWS},()=>Array(COLS).fill(0)),score:0,lines:0,combo:0,gameOver:false};
+let sb=null,authUser=null,myProfile=null,isAdmin=false,adminAccounts=[],channel=null,queueChannel=null,queueTimer=null,roomId='',playerId=crypto.randomUUID(),playerName='PLAYER',opponentId=null,opponentUserId=null,opponentName='OPPONENT',isHost=false,started=false,finished=false,gameMode='solo',onlineKind='',cpuMode=false,cpuClock=0,cpuAI=null,rankCheckPending=false,rankRoomValidated=false,resultRecorded=false,onlineAttackRule='items',remote={board:Array.from({length:ROWS},()=>Array(COLS).fill(0)),score:0,lines:0,combo:0,gameOver:false};
 // ========================================
 // SOLO ITEM SYSTEM
 // ========================================
@@ -1102,7 +1102,7 @@ function receiveAttack(p){
 }
 function receiveItemUse(p){if(!p||p.from===playerId||gameMode!=='online')return;effectText='OPPONENT ITEM: '+(p.itemName||'ITEM');effectTimer=40;draw()}
 function sendResult(won,scoreVal){send('game_end',{won,score:scoreVal})}
-function resetRemote(){remote={board:Array.from({length:ROWS},()=>Array(COLS).fill(0)),score:0,lines:0,combo:0,gameOver:false};drawEnemy()}
+function resetRemote(){remote={board:Array.from({length:ROWS},()=>Array(COLS).fill(0)),score:0,lines:0,combo:0,gameOver:false,piece:null};cpuAI=null;cpuClock=0;drawEnemy()}
 function resolveItemRule(hostPref,memberPref,hostId,memberId){
  const h=hostPref==='noitems'?'noitems':'items', m=memberPref==='noitems'?'noitems':'items';
  if(h===m)return h;
@@ -1112,23 +1112,166 @@ function resolveItemRule(hostPref,memberPref,hostId,memberId){
  return (hash%2===0)?'items':'noitems';
 }
 function itemRuleLabel(rule){return rule==='noitems'?'アイテムなし':'アイテムあり';}
-async function connectAndJoin(code,host,roomRule=onlineAttackRule){if(!sb){status('lobbyStatus','Supabaseに接続してください');return}roomId=code;isHost=host;onlineAttackRule=roomRule||'standard';status('lobbyStatus','ルームに接続しています...');if(channel){await sb.removeChannel(channel);channel=null}
+async function connectAndJoin(code,host,roomRule=onlineAttackRule){if(!sb){status('lobbyStatus','Supabaseに接続してください');return}if(onlineKind==='rank'){if(!authUser){status('lobbyStatus','ランクマッチにはログインが必要です。');return}rankRoomValidated=false;rankCheckPending=false;if(!myProfile){const {data}=await sb.from('blocks_neon_profiles').select('id,display_name,rating').eq('id',authUser.id).maybeSingle();myProfile=data||null}if(!myProfile){status('lobbyStatus','自分のランク情報を取得できません。');return}}roomId=code;isHost=host;onlineAttackRule=roomRule||'items';status('lobbyStatus','ルームに接続しています...');if(channel){await sb.removeChannel(channel);channel=null}
  channel=sb.channel('blocks-neon-'+roomId,{config:{broadcast:{self:false},presence:{key:playerId}}});
- channel.on('presence',{event:'sync'},()=>{const state=channel.presenceState();const ids=Object.keys(state);const others=ids.filter(id=>id!==playerId);if(ids.length>2){status('lobbyStatus','このルームは満員です（最大2人）');sb.removeChannel(channel);channel=null;return}if(others.length){opponentId=others[0];const meta=state[opponentId]?.[0]||{};const mine=state[playerId]?.[0]||{};opponentName=meta.name||'OPPONENT';opponentUserId=meta.userId||null;const hostId=isHost?playerId:opponentId,memberId=isHost?opponentId:playerId;const hostMeta=state[hostId]?.[0]||{},memberMeta=state[memberId]?.[0]||{};onlineAttackRule=resolveItemRule(hostMeta.rulePreference||'items',memberMeta.rulePreference||'items',hostId,memberId);$('enemyName').textContent=opponentName;$('connection').textContent='相手と接続';status('lobbyStatus','対戦相手が参加しました。決定ルール：'+itemRuleLabel(onlineAttackRule));startMatch()}else{$('enemyName').textContent='WAITING...';$('connection').textContent='相手を待っています';status('lobbyStatus','ルームを作成しました。ROOM IDを相手に共有してください。')}});
+ channel.on('presence',{event:'sync'},async()=>{const state=channel.presenceState();const ids=Object.keys(state);const others=ids.filter(id=>id!==playerId);if(ids.length>2){status('lobbyStatus','このルームは満員です（最大2人）');await sb.removeChannel(channel);channel=null;return}if(others.length){opponentId=others[0];const meta=state[opponentId]?.[0]||{};opponentName=meta.name||'OPPONENT';opponentUserId=meta.userId||null;
+ if(onlineKind==='rank'){const ok=await validateRankOpponent(opponentUserId);if(!ok){if(channel){await sb.removeChannel(channel);channel=null}return}}
+ const hostId=isHost?playerId:opponentId,memberId=isHost?opponentId:playerId;const hostMeta=state[hostId]?.[0]||{},memberMeta=state[memberId]?.[0]||{};onlineAttackRule=resolveItemRule(hostMeta.rulePreference||'items',memberMeta.rulePreference||'items',hostId,memberId);$('enemyName').textContent=opponentName;$('connection').textContent='相手と接続';status('lobbyStatus','対戦相手が参加しました。決定ルール：'+itemRuleLabel(onlineAttackRule));startMatch()}else{$('enemyName').textContent='WAITING...';$('connection').textContent='相手を待っています';status('lobbyStatus','ルームを作成しました。ROOM IDを相手に共有してください。')}});
  channel.on('broadcast',{event:'state'},({payload})=>receiveState(payload));channel.on('broadcast',{event:'attack'},({payload})=>receiveAttack(payload));channel.on('broadcast',{event:'item_use'},({payload})=>receiveItemUse(payload));channel.on('broadcast',{event:'game_end'},({payload})=>{if(payload?.from!==playerId&&!finished){finished=true;gameOver=true;recordMatchResult(true);showResult('VICTORY','相手がゲームオーバーになりました。あなたの勝ちです！')}});channel.on('broadcast',{event:'restart'},({payload})=>{if(payload?.from!==playerId){started=true;finished=false;resultRecorded=false;initGame();resetRemote();$('result').style.display='none';setView('game');status('lobbyStatus','再戦を開始しました')}});
- channel.subscribe(async s=>{if(s==='SUBSCRIBED'){await channel.track({name:playerName,userId:authUser?.id||null,joinedAt:Date.now(),rulePreference:onlineAttackRule});$('roomLabel').textContent='ROOM '+roomId;gameMode='online';$('modeLabel').textContent=(onlineKind||'FRIEND').toUpperCase();setView('game');$('myName').textContent=playerName;status('lobbyStatus','接続しました。希望ルール：'+itemRuleLabel(onlineAttackRule)+'。相手の参加を待っています...')}})
+ channel.subscribe(async s=>{if(s==='SUBSCRIBED'){await channel.track({name:playerName,userId:authUser?.id||null,joinedAt:Date.now(),rulePreference:onlineAttackRule,rank:onlineKind==='rank'?(myProfile?.rating||1000):null,rankBand:onlineKind==='rank'?rankName(Number(myProfile?.rating)||1000):null});$('roomLabel').textContent='ROOM '+roomId;gameMode='online';$('modeLabel').textContent=(onlineKind||'FRIEND').toUpperCase();setView('game');$('myName').textContent=playerName;status('lobbyStatus','接続しました。希望ルール：'+itemRuleLabel(onlineAttackRule)+'。相手の参加を待っています...')}})
 }
 function startMatch(){soloItemMode=false;if(started&&gameMode==='online'&&!finished)return;started=true;finished=false;resultRecorded=false;cpuMode=false;$('modeLabel').textContent=(onlineKind||'FRIEND').toUpperCase()+' · '+(onlineAttackRule==='noitems'?'ITEM OFF':'ITEM ON');$('soloItemPanel').style.display=onlineAttackRule==='items'?'block':'none';$('gameArea').querySelector('.arena').classList.remove('single');initGame();resetRemote();setView('game');$('myName').textContent=playerName;$('enemyName').textContent=opponentName;$('connection').textContent='対戦中';publishState()}
 function generateRoom(){return String(Math.floor(100000+Math.random()*900000))}
+async function openRankLobby(){
+ if(!initSupabase())return;
+ if(!authUser){setView('account');status('authStatus','ランクマッチにはログインが必要です。');return}
+ const {data:{session}}=await sb.auth.getSession();
+ authUser=session?.user||authUser;
+ if(!authUser){setView('account');status('authStatus','ランクマッチにはログインが必要です。');return}
+ const {data,error}=await sb.from('blocks_neon_profiles').select('id,display_name,rating').eq('id',authUser.id).maybeSingle();
+ if(error||!data){setView('account');status('authStatus','ランク情報を取得できません。プロフィールを確認してください。');return}
+ myProfile=data;
+ onlineKind='rank';gameMode='online';cpuMode=false;
+ $('roomAttackRule').value='items';
+ setView('lobby');
+ status('lobbyStatus',`ランクマッチ（${rankName(Number(data.rating)||1000)}）\nルームを作成するか、同じランク帯のルームIDを入力してください。`);
+}
+async function validateRankOpponent(opponentUserIdValue){
+ if(onlineKind!=='rank')return true;
+ if(rankRoomValidated)return true;
+ if(rankCheckPending){
+  while(rankCheckPending)await new Promise(resolve=>setTimeout(resolve,25));
+  return rankRoomValidated;
+ }
+ rankCheckPending=true;
+ try{
+  if(!authUser||!opponentUserIdValue){status('lobbyStatus','ランク確認に必要なアカウント情報がありません。');return false}
+  const mine=myProfile|| (await sb.from('blocks_neon_profiles').select('id,display_name,rating').eq('id',authUser.id).maybeSingle()).data;
+  const {data:other,error}=await sb.from('blocks_neon_profiles').select('id,display_name,rating').eq('id',opponentUserIdValue).maybeSingle();
+  if(!mine||error||!other){status('lobbyStatus','相手のランク情報を確認できません。ランクルームへの参加を中止しました。');return false}
+  myProfile=mine;
+  const myRank=rankName(Number(mine.rating)||1000),theirRank=rankName(Number(other.rating)||1000);
+  if(myRank!==theirRank){
+   status('lobbyStatus',`ランク帯が異なるため対戦できません。\nあなた：${myRank} ／ 相手：${theirRank}\n同じランク帯のルームを利用してください。`);
+   return false;
+  }
+  rankRoomValidated=true;
+  return true;
+ }finally{rankCheckPending=false}
+}
 function initSupabase(){if(sb)return true;if(!SUPABASE_URL.startsWith('https://')||SUPABASE_ANON_KEY.includes('PASTE_YOUR_')){alert('管理者による初回設定が必要です。配布前にHTML内のSUPABASE_URLとSUPABASE_ANON_KEYへSupabaseのProject URLとPublishable keyを設定してください。');return false}try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{realtime:{params:{eventsPerSecond:30}}});return true}catch(e){alert('Supabase接続エラー: '+e.message);return false}}
-function openLocal(mode,itemMode=false){soloItemMode = mode==='solo' && itemMode;gameMode=mode;onlineKind='';cpuMode=false;started=true;finished=false;resultRecorded=false;opponentName='';$('modeLabel').textContent =
+function openLocal(mode,itemMode=false){soloItemMode = mode==='solo' && itemMode;cpuAI=null;cpuClock=0;gameMode=mode;onlineKind='';cpuMode=false;started=true;finished=false;resultRecorded=false;opponentName='';$('modeLabel').textContent =
   mode==='solo'
     ? (soloItemMode?'SOLO · ITEM ON':'SOLO · ITEM OFF')
     : 'LOCAL MULTI';$('soloItemPanel').style.display =
   soloItemMode ? 'block' : 'none';$('enemyName').textContent='';$('connection').textContent='LOCAL';$('roomLabel').textContent='';$('gameArea').querySelector('.arena').classList.toggle('single',mode==='solo');$('gameSideDummy');setView('game');$('myName').textContent=playerName;resetRemote();initGame();if(mode==='multi'){opponentName='CPU';cpuMode=true;$('enemyName').textContent='CPU';$('connection').textContent='CPU BATTLE';$('gameArea').querySelector('.arena').classList.remove('single')} }
 async function queueFor(kind){if(!initSupabase())return;if(kind==='rank'&&!authUser){setView('account');status('authStatus','ランクマッチにはログインが必要です。');return}onlineKind=kind;gameMode='online';cpuMode=false;status('lobbyStatus',kind.toUpperCase()+' マッチング中...');setView('lobby');if(queueChannel){await sb.removeChannel(queueChannel);queueChannel=null}queueChannel=sb.channel('blocks-neon-queue-'+kind,{config:{presence:{key:playerId},broadcast:{self:false}}});queueChannel.on('presence',{event:'sync'},async()=>{if(!queueChannel)return;const ids=Object.keys(queueChannel.presenceState()).sort();if(ids.length>=2&&ids.includes(playerId)){const pair=ids.slice(0,2);if(!pair.includes(playerId))return;const code=''+Array.from(pair.join('').replace(/-/g,'')).reduce((a,c)=>((a*31+c.charCodeAt(0))>>>0),7).toString().slice(-6).padStart(6,'0');if(queueTimer){clearTimeout(queueTimer);queueTimer=null}const host=pair[0]===playerId;const hostMeta=(queueChannel.presenceState()[pair[0]]||[])[0]||{};const memberMeta=(queueChannel.presenceState()[pair[1]]||[])[0]||{};const sharedRule=resolveItemRule(hostMeta.rulePreference||'items',memberMeta.rulePreference||'items',pair[0],pair[1]);await sb.removeChannel(queueChannel);queueChannel=null;connectAndJoin(code,host,sharedRule)}});queueChannel.subscribe(async st=>{if(st==='SUBSCRIBED'){await queueChannel.track({name:playerName,userId:authUser?.id||null,kind,rulePreference:onlineAttackRule,at:Date.now()});status('lobbyStatus','対戦相手を探しています...');if(kind==='free'){queueTimer=setTimeout(()=>{if(!started){if(queueChannel){sb.removeChannel(queueChannel);queueChannel=null}startCPUFallback()}},15000)}}});}
+
+// CPUは盤面を実際に積み上げ、候補配置を評価して手を選ぶ。
+// 反応時間・横移動・落下に小さな揺らぎを加え、機械的すぎないテンポにする。
+function cpuRotate(shape){return shape[0].map((_,i)=>shape.map(row=>row[i]).reverse())}
+function cpuFits(testBoard,shape,px,py){
+ for(let sy=0;sy<shape.length;sy++)for(let sx=0;sx<shape[sy].length;sx++)if(shape[sy][sx]){
+  const bx=px+sx,by=py+sy;
+  if(bx<0||bx>=COLS||by>=ROWS)return false;
+  if(by>=0&&testBoard[by][bx])return false;
+ }
+ return true;
+}
+function cpuEvaluate(testBoard,cleared){
+ let heights=[],holes=0,aggregate=0,bump=0;
+ for(let c=0;c<COLS;c++){
+  let h=0,seen=false;
+  for(let r=0;r<ROWS;r++){
+   if(testBoard[r][c]){
+    if(!seen){h=ROWS-r;seen=true}
+   }else if(seen)holes++;
+  }
+  heights.push(h);aggregate+=h;
+ }
+ for(let i=0;i<COLS-1;i++)bump+=Math.abs(heights[i]-heights[i+1]);
+ let wells=0;
+ for(let c=0;c<COLS;c++){
+  const left=c===0?ROWS:heights[c-1],right=c===COLS-1?ROWS:heights[c+1];
+  wells+=Math.max(0,Math.min(left,right)-heights[c]);
+ }
+ return cleared*8.5-holes*7.2-aggregate*0.48-bump*0.62-wells*0.25;
+}
+function cpuFindMove(piece){
+ let best=null,shape=piece.shape.map(r=>r.slice());
+ for(let rot=0;rot<4;rot++){
+  const width=shape[0].length;
+  for(let px=-1;px<=COLS-width;px++){
+   let py=-shape.length;
+   if(!cpuFits(remote.board,shape,px,py))continue;
+   while(cpuFits(remote.board,shape,px,py+1))py++;
+   const test=remote.board.map(r=>r.slice());
+   let valid=true;
+   shape.forEach((row,sy)=>row.forEach((v,sx)=>{if(v){const yy=py+sy,xx=px+sx;if(yy<0)valid=false;else test[yy][xx]=colors[piece.name]}}));
+   if(!valid)continue;
+   let cleared=0;
+   for(let r=ROWS-1;r>=0;r--)if(test[r].every(Boolean)){test.splice(r,1);test.unshift(Array(COLS).fill(0));cleared++;r++}
+   let value=cpuEvaluate(test,cleared)+(Math.random()-0.5)*1.2;
+   if(!best||value>best.value)best={x:px,y:py,shape:shape.map(r=>r.slice()),rotation:rot,board:test,cleared,value};
+  }
+  shape=cpuRotate(shape);
+ }
+ return best;
+}
+function cpuSpawn(){
+ const name=STANDARD_PIECES[Math.floor(Math.random()*STANDARD_PIECES.length)];
+ const piece={name,shape:pieces[name].map(r=>r.slice()),x:3,y:0};
+ if(!cpuFits(remote.board,piece.shape,piece.x,piece.y)){remote.gameOver=true;drawEnemy();return}
+ remote.piece=piece;
+ cpuAI={phase:'think',wait:420+Math.random()*560,plan:cpuFindMove(piece),moveClock:0,dropClock:0,dropDelay:55+Math.random()*45};
+ drawEnemy();
+}
+function cpuLockPiece(){
+ const p=remote.piece;if(!p)return;
+ p.shape.forEach((row,sy)=>row.forEach((v,sx)=>{if(v&&p.y+sy>=0)remote.board[p.y+sy][p.x+sx]=colors[p.name]}));
+ let cleared=0;
+ for(let r=ROWS-1;r>=0;r--)if(remote.board[r].every(Boolean)){remote.board.splice(r,1);remote.board.unshift(Array(COLS).fill(0));cleared++;r++}
+ if(cleared){remote.lines+=cleared;remote.combo++;remote.score+=([0,100,300,500,800][cleared]||900)+remote.combo*35}
+ else remote.combo=0;
+ remote.piece=null;drawEnemy();
+ cpuSpawn();
+}
+function updateCPU(delta){
+ if(!cpuMode||!started||finished||remote.gameOver)return;
+ if(!cpuAI){cpuSpawn();return}
+ const ai=cpuAI;ai.wait-=delta;
+ if(ai.phase==='think'){
+  if(ai.wait<=0){
+   if(ai.plan?.shape)remote.piece.shape=ai.plan.shape.map(row=>row.slice());
+   ai.phase='move';ai.moveClock=0;drawEnemy();
+  }
+  return;
+ }
+ if(ai.phase==='move'){
+  ai.moveClock+=delta;
+  const target=ai.plan?.x??remote.piece.x;
+  if(ai.moveClock>=(65+Math.random()*30)){
+   ai.moveClock=0;
+   if(remote.piece.x<target&&cpuFits(remote.board,remote.piece.shape,remote.piece.x+1,remote.piece.y))remote.piece.x++;
+   else if(remote.piece.x>target&&cpuFits(remote.board,remote.piece.shape,remote.piece.x-1,remote.piece.y))remote.piece.x--;
+   else if(remote.piece.x===target)ai.phase='drop';
+   drawEnemy();
+  }
+  return;
+ }
+ if(ai.phase==='drop'){
+  ai.dropClock+=delta;
+  if(ai.dropClock>ai.dropDelay){
+   ai.dropClock=0;
+   if(cpuFits(remote.board,remote.piece.shape,remote.piece.x,remote.piece.y+1)){remote.piece.y++;drawEnemy()}
+   else{cpuLockPiece()}
+  }
+ }
+}
+
 function startCPUFallback(){
   soloItemMode=false;
+  cpuAI=null;cpuClock=0;
   gameMode='online';
   cpuMode=true;
   started=true;
@@ -1155,6 +1298,7 @@ async function loadAccount(){
  if(!initSupabase())return;
  const {data:{session}}=await sb.auth.getSession();authUser=session?.user||null;
  if(authUser){playerId=authUser.id;const {data,error}=await sb.from('blocks_neon_profiles').select('*').eq('id',authUser.id).maybeSingle();if(error){status('authStatus','プロフィール取得エラー: '+error.message);return}
+  myProfile=data||null;
   playerName =
   data?.display_name ||
   authUser.user_metadata?.display_name ||
@@ -1432,9 +1576,9 @@ function retryCurrentGame(){
 }
 
 $('lobbyBack').onclick=()=>setView('online');
-$('createRoom').onclick=()=>{if(!initSupabase())return;onlineAttackRule=$('roomAttackRule')?.value||'items';const id=generateRoom();$('roomInput').value=id;connectAndJoin(id,true,onlineAttackRule)};
-$('joinRoom').onclick=()=>{if(!initSupabase())return;const id=$('roomInput').value.replace(/\D/g,'').slice(0,6);if(id.length!==6){status('lobbyStatus','6桁のルームIDを入力してください');return}connectAndJoin(id,false,$('roomAttackRule')?.value||'items')};
-$('backLobby').onclick=async()=>{if(channel){try{await channel.untrack();await sb.removeChannel(channel)}catch(e){}channel=null}if(queueChannel&&sb){try{await sb.removeChannel(queueChannel)}catch(e){}queueChannel=null}if(queueTimer)clearTimeout(queueTimer);started=false;finished=false;cpuMode=false;$('result').style.display='none';setView('title')};
+$('createRoom').onclick=async()=>{if(!initSupabase())return;if(onlineKind==='rank'&&!authUser){status('lobbyStatus','ランクマッチにはログインが必要です。');return}onlineAttackRule=$('roomAttackRule')?.value||'items';const id=generateRoom();$('roomInput').value=id;await connectAndJoin(id,true,onlineAttackRule)};
+$('joinRoom').onclick=async()=>{if(!initSupabase())return;if(onlineKind==='rank'&&!authUser){status('lobbyStatus','ランクマッチにはログインが必要です。');return}const id=$('roomInput').value.replace(/\D/g,'').slice(0,6);if(id.length!==6){status('lobbyStatus','6桁のルームIDを入力してください');return}await connectAndJoin(id,false,$('roomAttackRule')?.value||'items')};
+$('backLobby').onclick=async()=>{cpuAI=null;rankRoomValidated=false;rankCheckPending=false;if(channel){try{await channel.untrack();await sb.removeChannel(channel)}catch(e){}channel=null}if(queueChannel&&sb){try{await sb.removeChannel(queueChannel)}catch(e){}queueChannel=null}if(queueTimer)clearTimeout(queueTimer);started=false;finished=false;cpuMode=false;$('result').style.display='none';setView('title')};
 $('retryGame').onclick=retryCurrentGame;
 $('accountMode').onclick=async()=>{setView('account');if(initSupabase())await loadAccount()};$('adminOpen').onclick=openAdminPanel;$('adminBack').onclick=()=>{$('adminScreen').style.display='none';setView('account')};$('adminRefresh').onclick=loadAdminAccounts;$('adminLogsRefresh').onclick=loadAdminLogs;$('adminLogsSearch').addEventListener('input',renderAdminLogs);$('adminLogsFilter').addEventListener('change',renderAdminLogs);$('adminSearch').addEventListener('input',renderAdminAccounts);$('adminAccountsBody').addEventListener('click',e=>{const b=e.target.closest('button[data-admin-action]');if(b)runAdminAction(b.dataset.adminAction,b.dataset.id)});$('accountBack').onclick=()=>setView('title');$('refreshLeaderboard').onclick=loadLeaderboard;$('signUpBtn').onclick=()=>authAction('signup');$('signInBtn').onclick=()=>authAction('signin');$('signOutBtn').onclick=async()=>{if(sb)await sb.auth.signOut();authUser=null;myProfile=null;playerId=crypto.randomUUID();playerName='PLAYER';await loadAccount();status('authStatus','ログアウトしました。')};
 $('soloMode').onclick=()=>{
@@ -1453,7 +1597,7 @@ $('soloItemOff').onclick=()=>{
 
 $('soloSelectBack').onclick=()=>{
   $('soloSelect').style.display='none';
-};$('multiMode').onclick=()=>{if(!initSupabase())return;gameMode='online';onlineKind='multi';setView('lobby');status('lobbyStatus','ルームを作成するか、相手のルームIDを入力してください。')};$('onlineMode').onclick=()=>setView('online');$('onlineBack').onclick=()=>setView('title');$('rankMode').onclick=()=>queueFor('rank');$('freeMode').onclick=()=>queueFor('free');$('friendMode').onclick=()=>{if(!initSupabase())return;gameMode='online';onlineKind='friend';setView('lobby')};
+};$('multiMode').onclick=()=>{if(!initSupabase())return;gameMode='online';onlineKind='multi';setView('lobby');status('lobbyStatus','ルームを作成するか、相手のルームIDを入力してください。')};$('onlineMode').onclick=()=>setView('online');$('onlineBack').onclick=()=>setView('title');$('rankMode').onclick=openRankLobby;$('freeMode').onclick=()=>queueFor('free');$('friendMode').onclick=()=>{if(!initSupabase())return;gameMode='online';onlineKind='friend';setView('lobby')};
 
 function action(a){
  if(itemClearAnimation)return;
@@ -1536,32 +1680,8 @@ function update(time=0){
     }
   }
 
-  // CPU処理
-  if(started&&cpuMode&&!finished){
-    cpuClock+=delta;
-
-    if(cpuClock>850){
-      cpuClock=0;
-      remote.score+=Math.floor(20+Math.random()*90);
-      remote.lines+=Math.random()<.32?1:0;
-
-      const row=Array(COLS).fill(
-        '#'+['ff36d1','8c5cff','00c9ff'][
-          Math.floor(Math.random()*3)
-        ]
-      );
-
-      row[Math.floor(Math.random()*COLS)]=0;
-      remote.board.shift();
-      remote.board.push(row);
-
-      if(remote.board[0].some(Boolean)){
-        remote.board.shift();
-      }
-
-      drawEnemy();
-    }
-  }
+  // CPUは独立した盤面でミノを選択・移動・落下させる。
+  if(started&&cpuMode&&!finished)updateCPU(delta);
 
   draw();
 
