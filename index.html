@@ -59,9 +59,37 @@ button,input{font:inherit}button{border:1px solid #00ddeb;background:linear-grad
 .admin-actions{display:flex;gap:6px;flex-wrap:wrap}
 .admin-actions input{min-width:90px;width:100px;padding:8px}
 .admin-actions button{padding:8px 10px;font-size:11px}
+.admin-rating-actions,.admin-account-actions{align-items:flex-start;flex-direction:column;min-width:145px}
+.admin-field-label{font-size:10px;color:#91b8c8}
+.admin-rating-actions input{width:120px;max-width:100%}
+.admin-account-actions input{width:150px;max-width:100%}
+.admin-rating-actions button{border-color:#087f9b;background:#0b3040}
+#adminTable{min-width:850px}
 .admin-ban{border-color:#a32b55;background:#351020}
 .admin-unban{border-color:#168a70;background:#0b3029}
 #adminStatus{white-space:pre-wrap;min-height:22px;color:#9fefff;font-size:13px;margin-top:10px}
+
+#adminLogsTable{width:100%;border-collapse:collapse;font-size:12px;min-width:850px}
+#adminLogsTable th,#adminLogsTable td{padding:11px 9px;border-bottom:1px solid #20384a;text-align:left;vertical-align:top;line-height:1.55}
+#adminLogsTable th{color:#83b6c8;white-space:nowrap}
+.admin-logs-heading{align-items:flex-start;margin-bottom:14px}
+.admin-logs-heading .muted{margin:6px 0 0}
+.admin-log-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:14px 0}
+.admin-log-summary>div{background:#071321;border:1px solid #18394e;border-radius:10px;padding:12px}
+.admin-log-summary span{display:block;color:#91aabd;font-size:11px}
+.admin-log-summary strong{display:block;color:var(--neon);font-size:23px;margin-top:4px}
+.admin-log-tools{display:flex;gap:9px;margin:12px 0;flex-wrap:wrap}
+.admin-log-tools input{flex:1;min-width:220px}
+.admin-log-tools select{min-width:160px;padding:10px;border-radius:8px;border:1px solid #315064;background:#050d18;color:#fff}
+.admin-log-action{display:inline-block;padding:4px 8px;border-radius:7px;background:#102b3b;border:1px solid #24566a;color:#bafaff;font-weight:bold;white-space:nowrap}
+.admin-log-action.rating{background:#102b3b;border-color:#087f9b;color:#aafaff}
+.admin-log-action.ban{background:#351020;border-color:#a32b55;color:#ffb6c8}
+.admin-log-action.unban{background:#0b3029;border-color:#168a70;color:#9dffe0}
+.admin-log-value{display:inline-block;padding:4px 7px;border-radius:6px;background:#071321;color:#d9edf5;max-width:220px;overflow-wrap:anywhere}
+.admin-log-empty{padding:18px!important;text-align:center!important;color:#91aabd}
+.admin-log-footnote{margin:12px 0 0}
+@media(max-width:650px){.admin-log-summary{gap:6px}.admin-log-summary>div{padding:9px}.admin-log-summary strong{font-size:19px}.admin-logs-heading{gap:10px;flex-wrap:wrap}}
+
 #soloItemPanel {
   display:none;
   width:min(500px,100%);
@@ -309,22 +337,45 @@ button,input{font:inherit}button{border:1px solid #00ddeb;background:linear-grad
 <section id="adminScreen">
   <div class="admin-box">
     <div class="rowline"><h2 style="color:var(--neon);margin:0">ADMIN PANEL</h2><button id="adminBack" class="subtle">アカウント画面へ戻る</button></div>
-    <p class="muted">アカウント管理・レート変更・BAN管理。操作は管理者権限でサーバー側検証されます。</p>
+    <p class="muted">各プレイヤーのレート変更と、アカウントのBAN・解除を個別に管理できます。すべての操作は管理者権限でサーバー側検証されます。</p>
     <div class="rowline" style="margin:12px 0;flex-wrap:wrap">
       <input id="adminSearch" placeholder="ユーザー名・UUIDで検索" style="max-width:420px">
       <button id="adminRefresh">一覧を更新</button>
     </div>
     <div class="admin-table-wrap">
       <table id="adminTable">
-        <thead><tr><th>アカウント</th><th>UUID</th><th>レート</th><th>勝利</th><th>敗北</th><th>状態</th><th>管理操作</th></tr></thead>
+        <thead><tr><th>アカウント</th><th>UUID</th><th>レート設定</th><th>勝利</th><th>敗北</th><th>アカウント状態</th><th>アカウント管理</th></tr></thead>
         <tbody id="adminAccountsBody"><tr><td colspan="7">管理者確認後に読み込みます。</td></tr></tbody>
       </table>
     </div>
     <div id="adminStatus"></div>
   </div>
-  <div class="admin-box">
-    <div class="rowline"><h2 style="color:var(--neon);margin:0">ADMIN LOGS</h2><button id="adminLogsRefresh">履歴を更新</button></div>
-    <div class="admin-table-wrap"><table id="adminLogsTable"><thead><tr><th>日時</th><th>操作</th><th>対象UUID</th><th>変更前</th><th>変更後</th><th>理由</th></tr></thead><tbody id="adminLogsBody"><tr><td colspan="6">未読み込み</td></tr></tbody></table></div>
+  <div class="admin-box admin-logs-box">
+    <div class="rowline admin-logs-heading">
+      <div><h2 style="color:var(--neon);margin:0">ADMIN LOGS</h2><p class="muted">管理者が行った変更を新しい順に確認できます。</p></div>
+      <button id="adminLogsRefresh">履歴を更新</button>
+    </div>
+    <div class="admin-log-summary">
+      <div><span>表示中の履歴</span><strong id="adminLogCount">0</strong></div>
+      <div><span>レート変更</span><strong id="adminLogRatingCount">0</strong></div>
+      <div><span>BAN関連</span><strong id="adminLogBanCount">0</strong></div>
+    </div>
+    <div class="admin-log-tools">
+      <input id="adminLogsSearch" type="search" placeholder="プレイヤーUUID・操作内容・理由で検索">
+      <select id="adminLogsFilter" aria-label="操作の種類で絞り込み">
+        <option value="all">すべての操作</option>
+        <option value="rating">レート変更</option>
+        <option value="ban">BAN・BAN解除</option>
+        <option value="other">その他</option>
+      </select>
+    </div>
+    <div class="admin-table-wrap">
+      <table id="adminLogsTable">
+        <thead><tr><th>日時</th><th>操作内容</th><th>対象プレイヤー（UUID）</th><th>変更前</th><th>変更後</th><th>理由・メモ</th></tr></thead>
+        <tbody id="adminLogsBody"><tr><td colspan="6">履歴を読み込んでいます...</td></tr></tbody>
+      </table>
+    </div>
+    <p class="muted admin-log-footnote">※ 表示される項目は、データベースに保存された操作履歴に基づきます。</p>
   </div>
 </section>
 <section id="onlineMenu"><div class="menu-card"><h2 style="color:var(--neon);letter-spacing:3px">ONLINE</h2><div class="menu-buttons"><button id="rankMode">RANK MATCH</button><button id="freeMode" class="pink">FREE MATCH</button><button id="friendMode" class="subtle">FRIEND MATCH</button><button id="onlineBack" class="subtle">戻る</button></div><p class="menu-note">ランク：同じモードのプレイヤーと自動マッチング<br>フリー：待ち時間終了後はCPU戦に切り替え可能<br>フレンド：ルームIDで友達と対戦</p></div></section>
@@ -1171,14 +1222,17 @@ function renderAdminAccounts(){
     const banned=!!a.is_banned;
     return `<tr>
       <td>${name}</td><td>${id}</td>
-      <td><input aria-label="新しいレート" id="rate-${id}" type="number" min="0" max="100000" value="${Number(a.rating)||0}" style="width:90px"></td>
+      <td><div class="admin-actions admin-rating-actions">
+        <label class="admin-field-label" for="rate-${id}">変更後のレート</label>
+        <input aria-label="変更後のレート" id="rate-${id}" type="number" min="0" max="100000" value="${Number(a.rating)||0}">
+        <button data-admin-action="rating" data-id="${id}">レートを保存</button>
+      </div></td>
       <td>${Number(a.wins)||0}</td><td>${Number(a.losses)||0}</td>
-      <td>${banned?'<span style="color:#ff7090">BANNED</span>':'<span style="color:#7fffd4">ACTIVE</span>'}</td>
-      <td><div class="admin-actions">
-        <button data-admin-action="rating" data-id="${id}">レート保存</button>
+      <td>${banned?'<span style="color:#ff7090">BAN中</span>':'<span style="color:#7fffd4">有効</span>'}</td>
+      <td><div class="admin-actions admin-account-actions">
         ${banned
-          ? `<button class="admin-unban" data-admin-action="unban" data-id="${id}">REMOVE BAN</button>`
-          : `<input id="reason-${id}" placeholder="BAN理由" aria-label="BAN理由"><button class="admin-ban" data-admin-action="ban" data-id="${id}">BAN</button>`}
+          ? `<button class="admin-unban" data-admin-action="unban" data-id="${id}">BANを解除</button>`
+          : `<input id="reason-${id}" placeholder="BAN理由を入力" aria-label="BAN理由"><button class="admin-ban" data-admin-action="ban" data-id="${id}">このアカウントをBAN</button>`}
       </div></td>
     </tr>`;
   }).join('')||'<tr><td colspan="7">該当するアカウントがありません。</td></tr>';
@@ -1203,15 +1257,84 @@ async function runAdminAction(action,id){
   await loadAdminAccounts();
   await loadAdminLogs();
 }
+let adminLogRows = [];
+
+function adminLogActionInfo(action){
+  const raw=String(action||'').toLowerCase();
+  if(raw.includes('rating')||raw.includes('rate'))return {label:'レート変更',kind:'rating',filter:'rating'};
+  if(raw.includes('unban')||raw.includes('remove_ban'))return {label:'BAN解除',kind:'unban',filter:'ban'};
+  if(raw.includes('ban'))return {label:'アカウントBAN',kind:'ban',filter:'ban'};
+  const labels={
+    set_rating:'レート変更',
+    admin_set_rating:'レート変更',
+    admin_ban:'アカウントBAN',
+    admin_remove_ban:'BAN解除'
+  };
+  return {label:labels[raw]||String(action||'その他の操作'),kind:'other',filter:'other'};
+}
+function adminLogFormatDate(value){
+  if(!value)return '日時不明';
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime()))return String(value);
+  return new Intl.DateTimeFormat('ja-JP',{
+    year:'numeric',month:'2-digit',day:'2-digit',
+    hour:'2-digit',minute:'2-digit',second:'2-digit',
+    hour12:false
+  }).format(d);
+}
+function adminLogFormatValue(value){
+  if(value===null||value===undefined||value==='')return '—';
+  if(typeof value==='object'){
+    try{return JSON.stringify(value)}catch(e){return '[データ]'}
+  }
+  return String(value);
+}
+function renderAdminLogs(){
+  const query=($('adminLogsSearch')?.value||'').trim().toLowerCase();
+  const filter=$('adminLogsFilter')?.value||'all';
+  const all=adminLogRows;
+  const rows=all.filter(l=>{
+    const info=adminLogActionInfo(l.action);
+    if(filter!=='all'&&info.filter!==filter)return false;
+    const haystack=[
+      l.action,l.target_user_id,l.old_value,l.new_value,l.reason,
+      adminLogFormatDate(l.created_at),info.label
+    ].map(v=>String(v??'').toLowerCase()).join(' ');
+    return !query||haystack.includes(query);
+  });
+  $('adminLogCount').textContent=rows.length.toLocaleString('ja-JP');
+  $('adminLogRatingCount').textContent=all.filter(l=>adminLogActionInfo(l.action).filter==='rating').length.toLocaleString('ja-JP');
+  $('adminLogBanCount').textContent=all.filter(l=>adminLogActionInfo(l.action).filter==='ban').length.toLocaleString('ja-JP');
+
+  $('adminLogsBody').innerHTML=rows.map(l=>{
+    const info=adminLogActionInfo(l.action);
+    const target=escapeHtml(l.target_user_id||'対象不明');
+    const before=escapeHtml(adminLogFormatValue(l.old_value));
+    const after=escapeHtml(adminLogFormatValue(l.new_value));
+    const reason=escapeHtml(l.reason||'理由の記録なし');
+    return `<tr>
+      <td>${escapeHtml(adminLogFormatDate(l.created_at))}</td>
+      <td><span class="admin-log-action ${info.kind}">${escapeHtml(info.label)}</span></td>
+      <td><code>${target}</code></td>
+      <td><span class="admin-log-value">${before}</span></td>
+      <td><span class="admin-log-value">${after}</span></td>
+      <td>${reason}</td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="6" class="admin-log-empty">${all.length?'条件に一致する履歴はありません。':'操作履歴はありません。'}</td></tr>`;
+}
 async function loadAdminLogs(){
-  if(!await checkAdminAccess())return;
+  if(!await checkAdminAccess()){
+    $('adminLogsBody').innerHTML='<tr><td colspan="6" class="admin-log-empty">管理者権限が必要です。</td></tr>';
+    return;
+  }
+  $('adminLogsBody').innerHTML='<tr><td colspan="6" class="admin-log-empty">履歴を読み込んでいます...</td></tr>';
   const {data,error}=await sb.rpc('blocks_neon_admin_get_logs');
-  if(error){$('adminLogsBody').innerHTML='<tr><td colspan="6">履歴取得エラー: '+escapeHtml(error.message)+'</td></tr>';return}
-  $('adminLogsBody').innerHTML=(data||[]).map(l=>`<tr>
-    <td>${escapeHtml(l.created_at||'')}</td><td>${escapeHtml(l.action||'')}</td>
-    <td>${escapeHtml(l.target_user_id||'')}</td><td>${escapeHtml(l.old_value||'')}</td>
-    <td>${escapeHtml(l.new_value||'')}</td><td>${escapeHtml(l.reason||'')}</td>
-  </tr>`).join('')||'<tr><td colspan="6">操作履歴はありません。</td></tr>';
+  if(error){
+    $('adminLogsBody').innerHTML='<tr><td colspan="6" class="admin-log-empty">履歴を取得できませんでした：'+escapeHtml(error.message)+'</td></tr>';
+    return;
+  }
+  adminLogRows=Array.isArray(data)?data:[];
+  renderAdminLogs();
 }
 
 async function authAction(kind) {
@@ -1313,7 +1436,7 @@ $('createRoom').onclick=()=>{if(!initSupabase())return;onlineAttackRule=$('roomA
 $('joinRoom').onclick=()=>{if(!initSupabase())return;const id=$('roomInput').value.replace(/\D/g,'').slice(0,6);if(id.length!==6){status('lobbyStatus','6桁のルームIDを入力してください');return}connectAndJoin(id,false,$('roomAttackRule')?.value||'items')};
 $('backLobby').onclick=async()=>{if(channel){try{await channel.untrack();await sb.removeChannel(channel)}catch(e){}channel=null}if(queueChannel&&sb){try{await sb.removeChannel(queueChannel)}catch(e){}queueChannel=null}if(queueTimer)clearTimeout(queueTimer);started=false;finished=false;cpuMode=false;$('result').style.display='none';setView('title')};
 $('retryGame').onclick=retryCurrentGame;
-$('accountMode').onclick=async()=>{setView('account');if(initSupabase())await loadAccount()};$('adminOpen').onclick=openAdminPanel;$('adminBack').onclick=()=>{$('adminScreen').style.display='none';setView('account')};$('adminRefresh').onclick=loadAdminAccounts;$('adminLogsRefresh').onclick=loadAdminLogs;$('adminSearch').addEventListener('input',renderAdminAccounts);$('adminAccountsBody').addEventListener('click',e=>{const b=e.target.closest('button[data-admin-action]');if(b)runAdminAction(b.dataset.adminAction,b.dataset.id)});$('accountBack').onclick=()=>setView('title');$('refreshLeaderboard').onclick=loadLeaderboard;$('signUpBtn').onclick=()=>authAction('signup');$('signInBtn').onclick=()=>authAction('signin');$('signOutBtn').onclick=async()=>{if(sb)await sb.auth.signOut();authUser=null;myProfile=null;playerId=crypto.randomUUID();playerName='PLAYER';await loadAccount();status('authStatus','ログアウトしました。')};
+$('accountMode').onclick=async()=>{setView('account');if(initSupabase())await loadAccount()};$('adminOpen').onclick=openAdminPanel;$('adminBack').onclick=()=>{$('adminScreen').style.display='none';setView('account')};$('adminRefresh').onclick=loadAdminAccounts;$('adminLogsRefresh').onclick=loadAdminLogs;$('adminLogsSearch').addEventListener('input',renderAdminLogs);$('adminLogsFilter').addEventListener('change',renderAdminLogs);$('adminSearch').addEventListener('input',renderAdminAccounts);$('adminAccountsBody').addEventListener('click',e=>{const b=e.target.closest('button[data-admin-action]');if(b)runAdminAction(b.dataset.adminAction,b.dataset.id)});$('accountBack').onclick=()=>setView('title');$('refreshLeaderboard').onclick=loadLeaderboard;$('signUpBtn').onclick=()=>authAction('signup');$('signInBtn').onclick=()=>authAction('signin');$('signOutBtn').onclick=async()=>{if(sb)await sb.auth.signOut();authUser=null;myProfile=null;playerId=crypto.randomUUID();playerName='PLAYER';await loadAccount();status('authStatus','ログアウトしました。')};
 $('soloMode').onclick=()=>{
   $('soloSelect').style.display='flex';
 };
