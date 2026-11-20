@@ -752,7 +752,6 @@ function setView(view){$('adminScreen').style.display='none';$('titleScreen').st
 const STANDARD_PIECES = [
   'A', 'B', 'C', 'D', 'E','F', 'G', 'H', 'I', 'J', 'K','L','M','N', 'O', 'P', 'Q', 'R', 'S', 'T','U', 'V', 'W',  'Z'
 ];
-
 // 15-bag方式
 let pieceBag = [];
 
@@ -874,12 +873,20 @@ function clearLines(){
   score+=combo*50;
 onSoloLinesCleared(lines);
   linesCleared+=lines;
-  // Online-only garbage attack. It does not alter solo scoring or line-clear rules.
-  if(gameMode==="online"&&!cpuMode&&channel){
-   const baseAttack=lines===4?4:lines===3?2:lines===2?1:0;
-   const attack=onlineAttackRule==='strong'?baseAttack*2:onlineAttackRule==='light'?Math.ceil(baseAttack/2):baseAttack;
-   if(attack)sendAttack(attack);
+  // CPU戦・オンライン戦の両方で攻撃
+if(gameMode === 'online' && (cpuMode || channel)){
+  const attack = garbageAttackForLines(lines);
+
+  if(attack > 0){
+    if(cpuMode){
+      // CPUにお邪魔ブロックを送る
+      applyGarbageToCPU(attack);
+    }else{
+      // オンラインの対戦相手に送る
+      sendAttack(attack);
+    }
   }
+}
  }else{combo=0;backToBack=false}
  updateUI();lastMoveRotate=false;
 }
@@ -1066,39 +1073,154 @@ function drawEnemy(){drawBoard(enemyCtx,enemyCanvas,remote.board);if(remote.piec
 function snapshot(){return{board:board.map(r=>r.slice()),piece:current?{name:current.name,shape:current.shape.map(r=>r.slice()),x,y}:null,score,lines:linesCleared,combo,gameOver}}
 function publishState(){if(!channel||!started)return;send('state',snapshot())}
 async function send(event,payload){if(!channel)return;try{await channel.send({type:'broadcast',event,payload:{...payload,from:playerId}})}catch(e){console.warn('Realtime send failed',e)}}
-function sendAttack(lines){
-  const amount=Math.max(0,Math.min(8,Math.floor(Number(lines)||0)));
-  if(amount>0)send('attack',{lines:amount});
+function garbageAttackForLines(lines){
+  const base =
+    lines === 4 ? 4 :
+    lines === 3 ? 2 :
+    lines === 2 ? 1 : 0;
+
+  return onlineAttackRule === 'strong'
+    ? base * 2
+    : onlineAttackRule === 'light'
+      ? Math.ceil(base / 2)
+      : base;
 }
-function receiveState(p){if(!p||p.from===playerId)return;remote={...remote,...p,board:Array.isArray(p.board)?p.board:remote.board};drawEnemy()}
-function receiveAttack(p){
-  if(!p||p.from===playerId||!started||gameOver||gameMode!=='online'||cpuMode)return;
-  const count=Math.min(8,Math.max(0,Math.floor(Number(p.lines)||0)));
-  if(!count)return;
 
-  // 相手から届いた列を盤面の最下段へ追加する
-  let previousHole=-1;
-  for(let i=0;i<count;i++){
-    let hole=Math.floor(Math.random()*COLS);
-    // 穴が同じ場所に連続しにくいようにする
-    if(COLS>1&&hole===previousHole)hole=(hole+1+Math.floor(Math.random()*(COLS-1)))%COLS;
-    previousHole=hole;
+function sendAttack(lines){
+  const amount = Math.max(0, Math.min(8, Math.floor(Number(lines) || 0)));
+  if(amount > 0) send('attack', {lines:amount});
+}
 
-    board.shift();
-    const garbageRow=Array(COLS).fill('#667080');
-    garbageRow[hole]=0;
-    board.push(garbageRow);
+function makeGarbageRow(previousHole){
+  let hole = Math.floor(Math.random() * COLS);
+
+  if(COLS > 1 && hole === previousHole){
+    hole = (hole + 1 + Math.floor(Math.random() * (COLS - 1))) % COLS;
   }
 
-  garbageReceived+=count;
-  effectText='GARBAGE +'+count;
-  effectTimer=35;
+  const row = Array(COLS).fill('#667080');
+  row[hole] = 0;
+
+  return {row, hole};
+}
+
+// プレイヤー側にお邪魔ブロックを追加
+function applyGarbageToPlayer(lines, source = 'OPPONENT'){
+  const count = Math.min(8, Math.max(0, Math.floor(Number(lines) || 0)));
+
+  if(!count || !started || gameOver) return;
+
+  let previousHole = -1;
+
+  for(let i = 0; i < count; i++){
+    const next = makeGarbageRow(previousHole);
+    previousHole = next.hole;
+
+    board.shift();
+    board.push(next.row);
+
+    // 操作中のミノも押し上げる
+    if(current) y--;
+  }
+
+  garbageReceived += count;
+
+  effectText = `${source} GARBAGE +${count}`;
+  effectTimer = 38;
+
   spawnShockwave();
 
-  // おじゃまブロックで操作中のミノが押し上げられなくなった場合は敗北
-  if(collision())endGame();
+  // ミノが盤面上部から押し出されたらゲーム終了
+  const pushedOut = current && current.shape.some((row, ry) =>
+    row.some((v, rx) => v && y + ry < 0)
+  );
+
+  if(pushedOut || collision()){
+    endGame();
+  }
+
   updateUI();
   publishState();
+  draw();
+}
+
+// CPU側にお邪魔ブロックを追加
+function applyGarbageToCPU(lines){
+  const count = Math.min(8, Math.max(0, Math.floor(Number(lines) || 0)));
+
+  if(!count || !cpuMode || remote.gameOver) return;
+
+  let previousHole = -1;
+
+  for(let i = 0; i < count; i++){
+    const next = makeGarbageRow(previousHole);
+    previousHole = next.hole;
+
+    remote.board.shift();
+    remote.board.push(next.row);
+
+    if(remote.piece) remote.piece.y--;
+  }
+
+  // CPUの配置計画を更新
+  if(remote.piece && cpuAI){
+    cpuAI.plan = cpuFindMove(remote.piece);
+    cpuAI.phase = 'move';
+    cpuAI.moveClock = 0;
+  }
+
+  effectText = `CPU GARBAGE +${count}`;
+  effectTimer = 32;
+
+  const pushedOut = remote.piece && remote.piece.shape.some((row, ry) =>
+    row.some((v, rx) => v && remote.piece.y + ry < 0)
+  );
+
+  if(
+    pushedOut ||
+    (remote.piece && !cpuFits(
+      remote.board,
+      remote.piece.shape,
+      remote.piece.x,
+      remote.piece.y
+    ))
+  ){
+    remote.gameOver = true;
+    remote.piece = null;
+    finished = true;
+
+    recordMatchResult(true);
+    showResult('VICTORY', 'CPUがゲームオーバーになりました！');
+  }
+
+  drawEnemy();
+}
+
+// オンラインの相手から盤面情報を受信
+function receiveState(p){
+  if(!p || p.from === playerId) return;
+
+  remote = {
+    ...remote,
+    ...p,
+    board: Array.isArray(p.board) ? p.board : remote.board
+  };
+
+  drawEnemy();
+}
+
+// オンラインの相手から攻撃を受信
+function receiveAttack(p){
+  if(
+    !p ||
+    p.from === playerId ||
+    !started ||
+    gameOver ||
+    gameMode !== 'online' ||
+    cpuMode
+  ) return;
+
+  applyGarbageToPlayer(p.lines, 'OPPONENT');
 }
 function receiveItemUse(p){if(!p||p.from===playerId||gameMode!=='online')return;effectText='OPPONENT ITEM: '+(p.itemName||'ITEM');effectTimer=40;draw()}
 function sendResult(won,scoreVal){send('game_end',{won,score:scoreVal})}
@@ -1227,14 +1349,52 @@ function cpuSpawn(){
  drawEnemy();
 }
 function cpuLockPiece(){
- const p=remote.piece;if(!p)return;
- p.shape.forEach((row,sy)=>row.forEach((v,sx)=>{if(v&&p.y+sy>=0)remote.board[p.y+sy][p.x+sx]=colors[p.name]}));
- let cleared=0;
- for(let r=ROWS-1;r>=0;r--)if(remote.board[r].every(Boolean)){remote.board.splice(r,1);remote.board.unshift(Array(COLS).fill(0));cleared++;r++}
- if(cleared){remote.lines+=cleared;remote.combo++;remote.score+=([0,100,300,500,800][cleared]||900)+remote.combo*35}
- else remote.combo=0;
- remote.piece=null;drawEnemy();
- cpuSpawn();
+  const p = remote.piece;
+  if(!p) return;
+
+  p.shape.forEach((row, sy) => {
+    row.forEach((v, sx) => {
+      if(v && p.y + sy >= 0){
+        remote.board[p.y + sy][p.x + sx] = colors[p.name];
+      }
+    });
+  });
+
+  let cleared = 0;
+
+  for(let r = ROWS - 1; r >= 0; r--){
+    if(remote.board[r].every(Boolean)){
+      remote.board.splice(r, 1);
+      remote.board.unshift(Array(COLS).fill(0));
+      cleared++;
+      r++;
+    }
+  }
+
+  if(cleared){
+    remote.lines += cleared;
+    remote.combo++;
+
+    remote.score +=
+      ([0, 100, 300, 500, 800][cleared] || 900)
+      + remote.combo * 35;
+
+    // CPUからプレイヤーへ攻撃
+    const attack = garbageAttackForLines(cleared);
+
+    if(attack > 0){
+      applyGarbageToPlayer(attack, 'CPU');
+    }
+  }else{
+    remote.combo = 0;
+  }
+
+  if(finished || gameOver) return;
+
+  remote.piece = null;
+  drawEnemy();
+
+  cpuSpawn();
 }
 function updateCPU(delta){
  if(!cpuMode||!started||finished||remote.gameOver)return;
