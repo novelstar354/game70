@@ -420,6 +420,62 @@ const SUPABASE_URL='https://ftmsywsapyxoakiezhjl.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_0rswfUUX0fN26G1Z7uWe9Q_aeCAaeS9';
 const COLS=10,ROWS=20,SIZE=30;
 const pieces={
+ A:[[1,1]],
+ B:[[1,0,1,0],[0,1,0,1]],
+ C:[[0,1,0,1],[1,0,1,0]],
+ D:[[1]],
+ E:[[1],[1],[1]],
+ F:[[1,1,1],[0,1,1],[0,0,1]],
+ G:[[1,1,1],[0,0,1],[0,0,1]],
+ H:[[1,1,1],[1,0,1],[0,0,1],[1,1,1]],
+ I:[[1,1,1,1]],
+ J:[[1,0,0],[0,1,0],[0,0,1],[0,1,0],[1,0,0]],
+ K:[[1,0],[0,1]],
+ L:[[0,0,1],[1,1,1]],
+ M:[[0,1,1],[1,1,1],[1,1,0]],
+ N:[[1,0,0],[1,1,0],[1,1,1],[1,1,0],[1,0,0]],
+ O:[[1,1],[1,1]],
+ P:[[1],[0],[1]],
+ Q:[[1],[1],[1],[1],[1]],
+ R:[[0,1,0],[1,1,1],[0,1,0]],
+ S:[[0,1,1],[1,1,0]],
+ T:[[0,1,0],[1,1,1]],
+ U:[[1,1],[1,1],[1,1],[1,1]],
+ V:[[1,1],[1,1],[1,1],[1,1],[1,1]],
+ W:[[1,1],[1,1],[1,1]],
+ X:[[1,0,1],[0,1,0],[1,0,1]],
+ Y:[[0,1,0],[1,0,1],[0,1,0]],
+ Z:[[1,1,0],[0,1,1]]
+};
+const colors={
+ A:'#ff0095',
+ B:'#00bfff',
+ C:'#ffbb00',
+ D:'#02795b',
+ E:'#2b7902',
+ F:'#eb6c56',
+ G:'#6b9f91',
+ H:'#61a382',
+ I:'#00f7ff',
+ J:'#0066ff',
+ K:'#fd33e7',
+ L:'#ff8800',
+ M:'#28e0b6',
+ N:'#53a286',
+ O:'#ffe600',
+ P:'#d42b2b',
+ Q:'#18ca66',
+ R:'#abcc58',
+ S:'#00ff88',
+ T:'#c400ff',
+ U:'#888567',
+ V:'#a78eeb',
+ W:'#cc93bf',
+ X:'#758dae',
+ Y:'#fc1fb7',
+ Z:'#ff0044'
+};
+
 let sb=null,authUser=null,myProfile=null,isAdmin=false,adminAccounts=[],channel=null,queueChannel=null,queueTimer=null,roomId='',playerId=crypto.randomUUID(),playerName='PLAYER',opponentId=null,opponentUserId=null,opponentName='OPPONENT',isHost=false,started=false,finished=false,gameMode='solo',onlineKind='',cpuMode=false,cpuClock=0,cpuAI=null,rankCheckPending=false,rankRoomValidated=false,resultRecorded=false,onlineAttackRule='items',remote={board:Array.from({length:ROWS},()=>Array(COLS).fill(0)),score:0,lines:0,combo:0,gameOver:false};
 // ========================================
 // SOLO ITEM SYSTEM
@@ -703,6 +759,7 @@ function setView(view){$('adminScreen').style.display='none';$('titleScreen').st
 const STANDARD_PIECES = [
   'A', 'B', 'C', 'D', 'E','F', 'G', 'H', 'I', 'J', 'K','L','M','N', 'O', 'P', 'Q', 'R', 'S', 'T','U', 'V', 'W',  'Z'
 ];
+
 // 15-bag方式
 let pieceBag = [];
 
@@ -1944,4 +2001,3 @@ requestAnimationFrame(update);
 
 })();
 </script></body></html>
-                                   
