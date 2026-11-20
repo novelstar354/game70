@@ -249,12 +249,24 @@ button,input{font:inherit}button{border:1px solid #00ddeb;background:linear-grad
   font-weight: bold;
   margin-top: 5px;
 }
+
+.overlay-screen{display:none;position:fixed;inset:0;z-index:30;align-items:center;justify-content:center;padding:16px;background:#020611ef;backdrop-filter:blur(10px)}
+.overlay-card{width:min(560px,100%);max-height:90vh;overflow:auto;padding:22px;background:linear-gradient(145deg,#10243a,#07101d);border:1px solid #087c91;border-radius:18px;box-shadow:0 0 35px #00dfff22}
+.overlay-card h2{color:var(--neon);letter-spacing:3px;margin:0 0 10px}
+.config-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:16px 0}
+.config-grid label{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;background:#071321;border:1px solid #18394e;border-radius:8px;font-size:12px}
+.config-grid .bind-key{min-width:76px;padding:8px 10px}
+#configScreen input[type=range]{padding:0;accent-color:var(--neon)}
+#postResultActions{display:none;max-width:500px;margin:14px auto;gap:9px}
+#postResultActions button{flex:1}
+#configTestExit{display:none;margin:0 auto 10px}
+@media(max-width:520px){.config-grid{grid-template-columns:1fr}.overlay-card{padding:18px}}
 </style></head>
 <body>
 <header><h1>BLOCKS NEON</h1></header>
 <section id="titleScreen"><div class="menu-card">
 <div class="logo">BLOCKS<br>NEON</div><div class="menu-sub">NEON BLOCK BATTLE · ONLINE v3.0</div>
-<div class="menu-buttons"><button id="soloMode">一人でプレイ</button><button id="multiMode" class="pink">マルチプレイ</button><button id="onlineMode" class="subtle">オンライン</button><button id="accountMode" class="subtle">アカウント・ランキング</button></div>
+<div class="menu-buttons"><button id="soloMode">一人でプレイ</button><button id="multiMode" class="pink">マルチプレイ</button><button id="onlineMode" class="subtle">オンライン</button><button id="accountMode" class="subtle">アカウント・ランキング</button><button id="configMode" class="subtle">CONFIG</button></div>
 <div class="menu-note">PC：矢印キー / SPACE　スマートフォン：フリック・タップ対応</div>
 </div></section>
 <div id="soloSelect">
@@ -407,10 +419,32 @@ button,input{font:inherit}button{border:1px solid #00ddeb;background:linear-grad
 </div>  </div></div>
 <div class="game-side opponent"><div class="board-wrap"><canvas id="enemyGame" width="300" height="600"></canvas></div><div class="stats"><div class="caption">ENEMY SCORE</div><div class="value" id="enemyScore">0</div><div class="caption">LINES</div><div class="value" id="enemyLines">0</div><div class="caption">COMBO</div><div class="value" id="enemyCombo">0</div><div class="caption">STATUS</div><div class="value" id="enemyStatus" style="font-size:12px">READY</div></div></div>
 </div>
-<div id="gestureHint">左右フリック：移動 / 下フリック：ソフトドロップ / タップ：回転 / ダブルタップ：ハードドロップ（上フリックは無効）<br>オンライン対戦：相手がラインを消すと、おじゃまブロックが下からせり上がります。</div><div class="mobile-controls"><button data-action="left">◀</button><button data-action="rotateCCW">↶</button><button data-action="rotateCW">↻</button><button data-action="right">▶</button><button data-action="down">▼</button><button data-action="hold">HOLD</button><button data-action="drop" class="wide">DROP</button><button data-action="pause">Ⅱ</button></div>
+<div id="gestureHint">左右フリック：移動 / 下フリック：ソフトドロップ / タップ：回転 / ダブルタップ：ハードドロップ（上フリックは無効）<br>オンライン対戦：相手がラインを消すと、おじゃまブロックが下からせり上がります。</div><div class="mobile-controls"><button data-action="left">◀</button><button data-action="rotateCCW">↶</button><button data-action="rotateCW">↻</button><button data-action="right">▶</button><button data-action="down">▼</button><button data-action="hold">HOLD</button><button data-action="drop" class="wide">DROP</button><button data-action="pause">Ⅱ</button><button id="mobileMenuOpen">MENU</button></div>
+<button id="configTestExit" class="subtle">CONFIGへ戻る</button><div id="postResultActions"><button id="nextGame">次のゲーム</button><button id="resultTitleButton" class="subtle">タイトル</button></div>
 <div class="footnote">← → 移動 / ↓ ソフトドロップ / SPACE ハードドロップ / ↑ 回転 / A・S 回転 / C HOLD / P 一時停止</div>
 </section>
-<div id="result"><div class="result-card"><h2 id="resultTitle">VICTORY</h2><div id="resultText">MATCH FINISHED</div><div class="result-actions"><button id="retryGame">もう一度プレイ</button><button id="backLobby">タイトルに戻る</button></div></div></div>
+<div id="configScreen" class="overlay-screen"><div class="overlay-card">
+<h2>CONFIG</h2><p class="muted">キー配置とソフトドロップ速度を変更できます。設定はこの端末に保存されます。</p>
+<div class="config-grid">
+<label>左移動 <button class="bind-key" data-bind="left">←</button></label>
+<label>右移動 <button class="bind-key" data-bind="right">→</button></label>
+<label>ソフトドロップ <button class="bind-key" data-bind="down">↓</button></label>
+<label>ハードドロップ <button class="bind-key" data-bind="drop">SPACE</button></label>
+<label>右回転 <button class="bind-key" data-bind="rotateCW">↑</button></label>
+<label>Dボタン（右回転） <button class="bind-key" data-bind="dButton">↑</button></label>
+<label>左回転 <button class="bind-key" data-bind="rotateCCW">A</button></label>
+<label>180度回転 <button class="bind-key" data-bind="rotate180">S</button></label>
+<label>ホールド <button class="bind-key" data-bind="hold">C</button></label>
+<label>一時停止 <button class="bind-key" data-bind="pause">P</button></label></div>
+<div class="field"><label for="softDropSpeed">ソフトドロップ速度：<strong id="softDropSpeedValue">1.0×</strong></label>
+<input id="softDropSpeed" type="range" min="1" max="8" step="1" value="1"><div class="muted">数値を上げるほど、下キー1回で速く落下します。</div></div>
+<div class="actions"><button id="configTest">お試しプレイ</button><button id="configSave">保存</button></div>
+<div class="actions"><button id="configReset" class="subtle">初期設定に戻す</button><button id="configBack" class="subtle">タイトルへ戻る</button></div>
+<div id="configStatus" class="status">キー変更ボタンを押してから、割り当てたいキーを押してください。</div>
+</div></div>
+<div id="mobileMenu" class="overlay-screen"><div class="overlay-card"><h2>GAME MENU</h2>
+<div class="menu-buttons"><button id="mobileRetry">リトライ</button><button id="mobileResume" class="subtle">ゲームに戻る</button><button id="mobileMenuTitle" class="subtle">タイトルへ戻る</button></div></div></div>
+<button id="backLobby" style="display:none" aria-hidden="true"></button><div id="result"><div class="result-card"><h2 id="resultTitle">VICTORY</h2><div id="resultText">MATCH FINISHED</div><div class="result-actions"><button id="returnPuzzle">パズルに戻る</button></div></div></div>
 <script>
 (() => {
 'use strict';
@@ -475,7 +509,6 @@ const colors={
  Y:'#fc1fb7',
  Z:'#ff0044'
 };
-
 let sb=null,authUser=null,myProfile=null,isAdmin=false,adminAccounts=[],channel=null,queueChannel=null,queueTimer=null,roomId='',playerId=crypto.randomUUID(),playerName='PLAYER',opponentId=null,opponentUserId=null,opponentName='OPPONENT',isHost=false,started=false,finished=false,gameMode='solo',onlineKind='',cpuMode=false,cpuClock=0,cpuAI=null,rankCheckPending=false,rankRoomValidated=false,resultRecorded=false,onlineAttackRule='items',remote={board:Array.from({length:ROWS},()=>Array(COLS).fill(0)),score:0,lines:0,combo:0,gameOver:false};
 // ========================================
 // SOLO ITEM SYSTEM
@@ -493,6 +526,9 @@ let soloItemExpires = 0;
 let forcedHoldPiece = null;
 let forcedHoldUses = 0;
 let soloItemMode = false;
+let viewingFinalBoard=false, configTestMode=false;
+const DEFAULT_KEYS={left:'ArrowLeft',right:'ArrowRight',down:'ArrowDown',drop:' ',rotateCW:'ArrowUp',dButton:'ArrowUp',rotateCCW:'a',rotate180:'s',hold:'c',pause:'p'};
+let keyBindings={...DEFAULT_KEYS},softDropSpeed=1,capturingBind=null;
 // ライン削除アニメーション
 let itemClearAnimation = null;
 const SOLO_ITEMS = [
@@ -782,6 +818,7 @@ function randomPiece() {
   };
 }
 function initGame(){
+ viewingFinalBoard=false;$('postResultActions').style.display='none';
  itemClearAnimation=null;
  board=Array.from({length:ROWS},()=>Array(COLS).fill(0));
  score=0;level=1;combo=0;linesCleared=0;garbageReceived=0;
@@ -913,9 +950,10 @@ function move(d){
 }
 function softDrop(){
  if(!started||paused||gameOver)return;
- y++;
- if(collision()){
-  y--;merge();clearLines();resetPiece();
+ const steps=Math.max(1,Math.min(8,Number(softDropSpeed)||1));
+ for(let i=0;i<steps;i++){
+  y++;
+  if(collision()){y--;merge();clearLines();resetPiece();break;}
  }
  publishState();
 }
@@ -973,7 +1011,7 @@ function holdPiece(){
 }
 function endGame(){
  if(gameOver||finished)return;
- gameOver=true;finished=true;publishState();
+ gameOver=true;finished=true;viewingFinalBoard=false;$('postResultActions').style.display='none';publishState();
  if(channel)send('game_end',{loser:true,score,lines:linesCleared});
  if(gameMode==='solo')showResult('GAME OVER','スコア '+score+' / ライン '+linesCleared);
  else{recordMatchResult(false);showResult('DEFEAT',cpuMode?'CPUに負けました。':'あなたのゲームオーバーです。')}
@@ -1038,9 +1076,12 @@ board.forEach((row,ry)=>{
   l.alpha-=.05;if(l.alpha<=0)lasers.splice(i,1);
  });
  if(effectTimer>0){
-  ctx.fillStyle="rgba(0,255,255,"+(effectTimer/40)+")";ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle="#00f7ff";ctx.font="bold 50px Arial";ctx.textAlign="center";
-  ctx.fillText(effectText,canvas.width/2,canvas.height/2);effectTimer--;
+  if(!cpuMode){
+   ctx.fillStyle="rgba(0,255,255,"+(effectTimer/40)+")";ctx.fillRect(0,0,canvas.width,canvas.height);
+   ctx.fillStyle="#00f7ff";ctx.font="bold 50px Arial";ctx.textAlign="center";
+   ctx.fillText(effectText,canvas.width/2,canvas.height/2);
+  }
+  effectTimer--;
  }
  if(paused){
   ctx.fillStyle="rgba(0,0,0,0.7)";ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -1290,7 +1331,7 @@ async function validateRankOpponent(opponentUserIdValue){
  }finally{rankCheckPending=false}
 }
 function initSupabase(){if(sb)return true;if(!SUPABASE_URL.startsWith('https://')||SUPABASE_ANON_KEY.includes('PASTE_YOUR_')){alert('管理者による初回設定が必要です。配布前にHTML内のSUPABASE_URLとSUPABASE_ANON_KEYへSupabaseのProject URLとPublishable keyを設定してください。');return false}try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{realtime:{params:{eventsPerSecond:30}}});return true}catch(e){alert('Supabase接続エラー: '+e.message);return false}}
-function openLocal(mode,itemMode=false){soloItemMode = mode==='solo' && itemMode;cpuAI=null;cpuClock=0;gameMode=mode;onlineKind='';cpuMode=false;started=true;finished=false;resultRecorded=false;opponentName='';$('modeLabel').textContent =
+function openLocal(mode,itemMode=false){$('configTestExit').style.display='none';configTestMode=false;soloItemMode = mode==='solo' && itemMode;cpuAI=null;cpuClock=0;gameMode=mode;onlineKind='';cpuMode=false;started=true;finished=false;resultRecorded=false;opponentName='';$('modeLabel').textContent =
   mode==='solo'
     ? (soloItemMode?'SOLO · ITEM ON':'SOLO · ITEM OFF')
     : 'LOCAL MULTI';$('soloItemPanel').style.display =
@@ -1844,11 +1885,36 @@ function retryCurrentGame(){
  }
 }
 
+
+function keyLabel(key){if(key===' ')return 'SPACE';return ({ArrowLeft:'←',ArrowRight:'→',ArrowDown:'↓',ArrowUp:'↑'})[key]||(String(key).length===1?String(key).toUpperCase():String(key));}
+function loadControls(){
+  try{const saved=JSON.parse(localStorage.getItem('blocks_neon_controls')||'{}');keyBindings={...DEFAULT_KEYS,...(saved.keys||{})};softDropSpeed=Math.max(1,Math.min(8,Number(saved.softDropSpeed)||1));}
+  catch(e){keyBindings={...DEFAULT_KEYS};softDropSpeed=1;}
+  $('softDropSpeed').value=String(softDropSpeed);$('softDropSpeedValue').textContent=softDropSpeed.toFixed(1)+'×';
+  document.querySelectorAll('[data-bind]').forEach(b=>b.textContent=keyLabel(keyBindings[b.dataset.bind]));
+}
+function saveControls(){localStorage.setItem('blocks_neon_controls',JSON.stringify({keys:keyBindings,softDropSpeed}));loadControls();status('configStatus','設定を保存しました。');}
+$('configMode').onclick=()=>{loadControls();$('configScreen').style.display='flex';};
+$('configBack').onclick=()=>$('configScreen').style.display='none';
+document.querySelectorAll('[data-bind]').forEach(b=>b.onclick=()=>{capturingBind=b.dataset.bind;b.textContent='入力待ち…';status('configStatus','割り当てたいキーを押してください。');});
+$('softDropSpeed').oninput=e=>{softDropSpeed=Number(e.target.value)||1;$('softDropSpeedValue').textContent=softDropSpeed.toFixed(1)+'×';};
+$('configSave').onclick=saveControls;
+$('configReset').onclick=()=>{keyBindings={...DEFAULT_KEYS};softDropSpeed=1;$('softDropSpeed').value='1';saveControls();status('configStatus','初期設定に戻しました。');};
+$('configTest').onclick=()=>{saveControls();$('configScreen').style.display='none';openLocal('solo',false);configTestMode=true;$('modeLabel').textContent='CONFIG TEST';$('configTestExit').style.display='block';$('gestureHint').textContent='設定したキーの動作をお試しできます。';};
+$('configTestExit').onclick=()=>{configTestMode=false;$('configTestExit').style.display='none';started=false;finished=false;gameOver=false;setView('title');$('configScreen').style.display='flex';loadControls();};
+$('returnPuzzle').onclick=()=>{$('result').style.display='none';viewingFinalBoard=true;$('postResultActions').style.display='flex';draw();};
+$('nextGame').onclick=()=>retryCurrentGame();
+$('resultTitleButton').onclick=()=>$('backLobby').click();
+$('mobileMenuOpen').onclick=()=>$('mobileMenu').style.display='flex';
+$('mobileResume').onclick=()=>$('mobileMenu').style.display='none';
+$('mobileRetry').onclick=()=>{$('mobileMenu').style.display='none';retryCurrentGame();};
+$('mobileMenuTitle').onclick=()=>{$('mobileMenu').style.display='none';$('backLobby').click();};
+
 $('lobbyBack').onclick=()=>setView('online');
 $('createRoom').onclick=async()=>{if(!initSupabase())return;if(onlineKind==='rank'&&!authUser){status('lobbyStatus','ランクマッチにはログインが必要です。');return}onlineAttackRule=$('roomAttackRule')?.value||'items';const id=generateRoom();$('roomInput').value=id;await connectAndJoin(id,true,onlineAttackRule)};
 $('joinRoom').onclick=async()=>{if(!initSupabase())return;if(onlineKind==='rank'&&!authUser){status('lobbyStatus','ランクマッチにはログインが必要です。');return}const id=$('roomInput').value.replace(/\D/g,'').slice(0,6);if(id.length!==6){status('lobbyStatus','6桁のルームIDを入力してください');return}await connectAndJoin(id,false,$('roomAttackRule')?.value||'items')};
-$('backLobby').onclick=async()=>{cpuAI=null;rankRoomValidated=false;rankCheckPending=false;if(channel){try{await channel.untrack();await sb.removeChannel(channel)}catch(e){}channel=null}if(queueChannel&&sb){try{await sb.removeChannel(queueChannel)}catch(e){}queueChannel=null}if(queueTimer)clearTimeout(queueTimer);started=false;finished=false;cpuMode=false;$('result').style.display='none';setView('title')};
-$('retryGame').onclick=retryCurrentGame;
+$('backLobby').onclick=async()=>{viewingFinalBoard=false;$('postResultActions').style.display='none';$('configTestExit').style.display='none';configTestMode=false;cpuAI=null;rankRoomValidated=false;rankCheckPending=false;if(channel){try{await channel.untrack();await sb.removeChannel(channel)}catch(e){}channel=null}if(queueChannel&&sb){try{await sb.removeChannel(queueChannel)}catch(e){}queueChannel=null}if(queueTimer)clearTimeout(queueTimer);started=false;finished=false;cpuMode=false;$('result').style.display='none';setView('title')};
+
 $('accountMode').onclick=async()=>{setView('account');if(initSupabase())await loadAccount()};$('adminOpen').onclick=openAdminPanel;$('adminBack').onclick=()=>{$('adminScreen').style.display='none';setView('account')};$('adminRefresh').onclick=loadAdminAccounts;$('adminLogsRefresh').onclick=loadAdminLogs;$('adminLogsSearch').addEventListener('input',renderAdminLogs);$('adminLogsFilter').addEventListener('change',renderAdminLogs);$('adminSearch').addEventListener('input',renderAdminAccounts);$('adminAccountsBody').addEventListener('click',e=>{const b=e.target.closest('button[data-admin-action]');if(b)runAdminAction(b.dataset.adminAction,b.dataset.id)});$('accountBack').onclick=()=>setView('title');$('refreshLeaderboard').onclick=loadLeaderboard;$('signUpBtn').onclick=()=>authAction('signup');$('signInBtn').onclick=()=>authAction('signin');$('signOutBtn').onclick=async()=>{if(sb)await sb.auth.signOut();authUser=null;myProfile=null;playerId=crypto.randomUUID();playerName='PLAYER';await loadAccount();status('authStatus','ログアウトしました。')};
 $('soloMode').onclick=()=>{
   $('soloSelect').style.display='flex';
@@ -1874,7 +1940,7 @@ function action(a){
  if(a==='right')move(1);
  if(a==='down')softDrop();
  if(a==='drop')hardDrop();
- if(a==='rotateCW')rotateCW();
+ if(a==='rotateCW'||a==='dButton')rotateCW();
  if(a==='rotateCCW')rotateCCW();
  if(a==='rotate180')rotate180();
  if(a==='hold')holdPiece();
@@ -1883,21 +1949,15 @@ function action(a){
 }
 
 document.addEventListener('keydown',e=>{
- if(['ArrowLeft','ArrowRight','ArrowDown','ArrowUp',' '].includes(e.key))e.preventDefault();
- if(e.key==='ArrowLeft')action('left');
- if(e.key==='ArrowRight')action('right');
- if(e.key==='ArrowDown')action('down');
- if(e.key===' ')action('drop');
- if(e.key==='ArrowUp'||e.key==='d'||e.key==='D')action('rotateCW');
- if(e.key==='a'||e.key==='A')action('rotateCCW');
- if(e.key==='s'||e.key==='S')action('rotate180');
- if(e.key==='c'||e.key==='C')action('hold');
- if(e.key==='p'||e.key==='P')action('pause');
-if(e.key==='v'||e.key==='V'){
-  e.preventDefault();
-  useSoloItem();
-}
- if(e.key==='r'||e.key==='R'){if(started&&!finished)retryCurrentGame()}
+ if(capturingBind){e.preventDefault();keyBindings[capturingBind]=e.key;capturingBind=null;loadControls();status('configStatus','キーを設定しました。保存すると反映されます。');return;}
+ const key=e.key;
+ if(['ArrowLeft','ArrowRight','ArrowDown','ArrowUp',' '].includes(key))e.preventDefault();
+ for(const name of ['left','right','down','drop','rotateCW','dButton','rotateCCW','rotate180','hold','pause']){
+   const assigned=keyBindings[name];
+   if(key===assigned || key.toLowerCase()===String(assigned).toLowerCase()){action(name);return;}
+ }
+ if(key==='v'||key==='V')useSoloItem();
+ if((key==='r'||key==='R')&&started&&!finished)retryCurrentGame();
 });
 document.querySelectorAll('[data-action]').forEach(b=>{const a=b.dataset.action;b.addEventListener('pointerdown',e=>{e.preventDefault();action(a)})});
 // Canvas gestures: horizontal/down flick = move/drop; tap = rotate; double tap = hard drop. Up flick is intentionally ignored.
@@ -1968,6 +2028,7 @@ function update(time=0){
 }
 
 // プレイヤー名の読み込み
+loadControls();
 playerName=localStorage.getItem('bn_name')||'PLAYER';
 $('myName').textContent=playerName;
 setView('title');
