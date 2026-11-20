@@ -378,7 +378,13 @@ button,input{font:inherit}button{border:1px solid #00ddeb;background:linear-grad
     <p class="muted admin-log-footnote">※ 表示される項目は、データベースに保存された操作履歴に基づきます。</p>
   </div>
 </section>
-<section id="onlineMenu"><div class="menu-card"><h2 style="color:var(--neon);letter-spacing:3px">ONLINE</h2><div class="menu-buttons"><button id="rankMode">RANK MATCH</button><button id="freeMode" class="pink">FREE MATCH</button><button id="friendMode" class="subtle">FRIEND MATCH</button><button id="onlineBack" class="subtle">戻る</button></div><p class="menu-note">ランク：ルームIDで参加。自分と同じランク帯の相手とのみ対戦できます。<br>フリー：待ち時間終了後はCPU戦に切り替え可能<br>フレンド：ルームIDで友達と対戦</p></div></section>
+<section id="onlineMenu"><div class="menu-card"><h2 style="color:var(--neon);letter-spacing:3px">ONLINE</h2><div class="menu-buttons">
+  <button id="rankMode">RANK MATCH</button>
+  <button id="freeMode" class="pink">FREE MATCH</button>
+  <button id="friendMode" class="subtle">FRIEND MATCH</button>
+  <button id="instantCpuMatch" class="pink">CPU MATCH</button>
+  <button id="onlineBack" class="subtle">戻る</button>
+</div><p class="menu-note">ランク：ルームIDで参加。自分と同じランク帯の相手とのみ対戦できます。<br>フリー：待ち時間終了後はCPU戦に切り替え可能<br>フレンド：ルームIDで友達と対戦</p></div></section>
 <section id="lobby">
 <div class="lobby-box"><h2>ROOM MATCH</h2><div class="field"><label for="roomAttackRule">対戦ルールの希望</label><select id="roomAttackRule" style="width:100%;padding:11px;background:#07101c;border:1px solid #315064;border-radius:8px;color:#fff"><option value="items">アイテムあり</option><option value="noitems">アイテムなし</option></select><p class="muted" style="margin:6px 0 0">ホストとメンバーの希望が違う場合は、抽選で最終ルールを決定します。</p></div><div class="actions"><button id="createRoom">ルームを作成</button></div><p class="muted">ルームを作成すると6桁のルームIDが発行されます。相手にIDを共有してください。</p></div>
 <div class="lobby-box"><h2>JOIN ROOM</h2><div class="field"><label>ROOM ID</label><input id="roomInput" maxlength="6" inputmode="numeric" placeholder="例: 482915"></div><button id="joinRoom">ルームに参加</button> <button id="lobbyBack" class="small-link">戻る</button><div id="lobbyStatus" class="status"></div></div>
@@ -414,61 +420,6 @@ const SUPABASE_URL='https://ftmsywsapyxoakiezhjl.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_0rswfUUX0fN26G1Z7uWe9Q_aeCAaeS9';
 const COLS=10,ROWS=20,SIZE=30;
 const pieces={
- A:[[1,1]],
- B:[[1,0,1,0],[0,1,0,1]],
- C:[[0,1,0,1],[1,0,1,0]],
- D:[[1]],
- E:[[1],[1],[1]],
- F:[[1,1,1],[0,1,1],[0,0,1]],
- G:[[1,1,1],[0,0,1],[0,0,1]],
- H:[[1,1,1],[1,0,1],[0,0,1],[1,1,1]],
- I:[[1,1,1,1]],
- J:[[1,0,0],[0,1,0],[0,0,1],[0,1,0],[1,0,0]],
- K:[[1,0],[0,1]],
- L:[[0,0,1],[1,1,1]],
- M:[[0,1,1],[1,1,1],[1,1,0]],
- N:[[1,0,0],[1,1,0],[1,1,1],[1,1,0],[1,0,0]],
- O:[[1,1],[1,1]],
- P:[[1],[0],[1]],
- Q:[[1],[1],[1],[1],[1]],
- R:[[0,1,0],[1,1,1],[0,1,0]],
- S:[[0,1,1],[1,1,0]],
- T:[[0,1,0],[1,1,1]],
- U:[[1,1],[1,1],[1,1],[1,1]],
- V:[[1,1],[1,1],[1,1],[1,1],[1,1]],
- W:[[1,1],[1,1],[1,1]],
- X:[[1,0,1],[0,1,0],[1,0,1]],
- Y:[[0,1,0],[1,0,1],[0,1,0]],
- Z:[[1,1,0],[0,1,1]]
-};
-const colors={
- A:'#ff0095',
- B:'#00bfff',
- C:'#ffbb00',
- D:'#02795b',
- E:'#2b7902',
- F:'#eb6c56',
- G:'#6b9f91',
- H:'#61a382',
- I:'#00f7ff',
- J:'#0066ff',
- K:'#fd33e7',
- L:'#ff8800',
- M:'#28e0b6',
- N:'#53a286',
- O:'#ffe600',
- P:'#d42b2b',
- Q:'#18ca66',
- R:'#abcc58',
- S:'#00ff88',
- T:'#c400ff',
- U:'#888567',
- V:'#a78eeb',
- W:'#cc93bf',
- X:'#758dae',
- Y:'#fc1fb7',
- Z:'#ff0044'
-};
 let sb=null,authUser=null,myProfile=null,isAdmin=false,adminAccounts=[],channel=null,queueChannel=null,queueTimer=null,roomId='',playerId=crypto.randomUUID(),playerName='PLAYER',opponentId=null,opponentUserId=null,opponentName='OPPONENT',isHost=false,started=false,finished=false,gameMode='solo',onlineKind='',cpuMode=false,cpuClock=0,cpuAI=null,rankCheckPending=false,rankRoomValidated=false,resultRecorded=false,onlineAttackRule='items',remote={board:Array.from({length:ROWS},()=>Array(COLS).fill(0)),score:0,lines:0,combo:0,gameOver:false};
 // ========================================
 // SOLO ITEM SYSTEM
@@ -1287,7 +1238,30 @@ function openLocal(mode,itemMode=false){soloItemMode = mode==='solo' && itemMode
     ? (soloItemMode?'SOLO · ITEM ON':'SOLO · ITEM OFF')
     : 'LOCAL MULTI';$('soloItemPanel').style.display =
   soloItemMode ? 'block' : 'none';$('enemyName').textContent='';$('connection').textContent='LOCAL';$('roomLabel').textContent='';$('gameArea').querySelector('.arena').classList.toggle('single',mode==='solo');$('gameSideDummy');setView('game');$('myName').textContent=playerName;resetRemote();initGame();if(mode==='multi'){opponentName='CPU';cpuMode=true;$('enemyName').textContent='CPU';$('connection').textContent='CPU BATTLE';$('gameArea').querySelector('.arena').classList.remove('single')} }
-async function queueFor(kind){if(!initSupabase())return;if(kind==='rank'&&!authUser){setView('account');status('authStatus','ランクマッチにはログインが必要です。');return}onlineKind=kind;gameMode='online';cpuMode=false;status('lobbyStatus',kind.toUpperCase()+' マッチング中...');setView('lobby');if(queueChannel){await sb.removeChannel(queueChannel);queueChannel=null}queueChannel=sb.channel('blocks-neon-queue-'+kind,{config:{presence:{key:playerId},broadcast:{self:false}}});queueChannel.on('presence',{event:'sync'},async()=>{if(!queueChannel)return;const ids=Object.keys(queueChannel.presenceState()).sort();if(ids.length>=2&&ids.includes(playerId)){const pair=ids.slice(0,2);if(!pair.includes(playerId))return;const code=''+Array.from(pair.join('').replace(/-/g,'')).reduce((a,c)=>((a*31+c.charCodeAt(0))>>>0),7).toString().slice(-6).padStart(6,'0');if(queueTimer){clearTimeout(queueTimer);queueTimer=null}const host=pair[0]===playerId;const hostMeta=(queueChannel.presenceState()[pair[0]]||[])[0]||{};const memberMeta=(queueChannel.presenceState()[pair[1]]||[])[0]||{};const sharedRule=resolveItemRule(hostMeta.rulePreference||'items',memberMeta.rulePreference||'items',pair[0],pair[1]);await sb.removeChannel(queueChannel);queueChannel=null;connectAndJoin(code,host,sharedRule)}});queueChannel.subscribe(async st=>{if(st==='SUBSCRIBED'){await queueChannel.track({name:playerName,userId:authUser?.id||null,kind,rulePreference:onlineAttackRule,at:Date.now()});status('lobbyStatus','対戦相手を探しています...');if(kind==='free'){queueTimer=setTimeout(()=>{if(!started){if(queueChannel){sb.removeChannel(queueChannel);queueChannel=null}startCPUFallback()}},15000)}}});}
+async function queueFor(kind){if(!initSupabase())return;if(kind==='rank'&&!authUser){setView('account');status('authStatus','ランクマッチにはログインが必要です。');return}onlineKind=kind;gameMode='online';cpuMode=false;status('lobbyStatus',kind.toUpperCase()+' マッチング中...');setView('lobby');if(queueChannel){await sb.removeChannel(queueChannel);queueChannel=null}queueChannel=sb.channel('blocks-neon-queue-'+kind,{config:{presence:{key:playerId},broadcast:{self:false}}});queueChannel.on('presence',{event:'sync'},async()=>{if(!queueChannel)return;const ids=Object.keys(queueChannel.presenceState()).sort();if(ids.length>=2&&ids.includes(playerId)){const pair=ids.slice(0,2);if(!pair.includes(playerId))return;const code=''+Array.from(pair.join('').replace(/-/g,'')).reduce((a,c)=>((a*31+c.charCodeAt(0))>>>0),7).toString().slice(-6).padStart(6,'0');if(queueTimer){clearTimeout(queueTimer);queueTimer=null}const host=pair[0]===playerId;const hostMeta=(queueChannel.presenceState()[pair[0]]||[])[0]||{};const memberMeta=(queueChannel.presenceState()[pair[1]]||[])[0]||{};const sharedRule=resolveItemRule(hostMeta.rulePreference||'items',memberMeta.rulePreference||'items',pair[0],pair[1]);await sb.removeChannel(queueChannel);queueChannel=null;connectAndJoin(code,host,sharedRule)}});queueChannel.subscribe(async st=>{if(st==='SUBSCRIBED'){await queueChannel.track({name:playerName,userId:authUser?.id||null,kind,rulePreference:onlineAttackRule,at:Date.now()});status('lobbyStatus','対戦相手を探しています...');if(kind === 'free'){
+  queueTimer = setTimeout(async () => {
+    if(started) return;
+
+    if(queueChannel){
+      try{
+        await sb.removeChannel(queueChannel);
+      }catch(e){}
+      queueChannel = null;
+    }
+
+    const accepted = confirm(
+      '対戦相手が見つかりませんでした。\n\nCPUと戦いますか？'
+    );
+
+    if(accepted){
+      startCPUFallback();
+    }else{
+      setView('onlineMenu');
+      status('lobbyStatus','CPU戦はキャンセルされました。');
+    }
+
+  },15000);
+}}});}
 
 // CPUは盤面を実際に積み上げ、候補配置を評価して手を選ぶ。
 // 反応時間・横移動・落下に小さな揺らぎを加え、機械的すぎないテンポにする。
@@ -1300,24 +1274,63 @@ function cpuFits(testBoard,shape,px,py){
  }
  return true;
 }
-function cpuEvaluate(testBoard,cleared){
- let heights=[],holes=0,aggregate=0,bump=0;
- for(let c=0;c<COLS;c++){
-  let h=0,seen=false;
-  for(let r=0;r<ROWS;r++){
-   if(testBoard[r][c]){
-    if(!seen){h=ROWS-r;seen=true}
-   }else if(seen)holes++;
+function cpuEvaluate(testBoard, cleared){
+  let heights = [];
+  let holes = 0;
+  let aggregate = 0;
+  let bump = 0;
+
+  for(let c = 0; c < COLS; c++){
+    let h = 0;
+    let seen = false;
+
+    for(let r = 0; r < ROWS; r++){
+      if(testBoard[r][c]){
+        if(!seen){
+          h = ROWS - r;
+          seen = true;
+        }
+      }else if(seen){
+        holes++;
+      }
+    }
+
+    heights.push(h);
+    aggregate += h;
   }
-  heights.push(h);aggregate+=h;
- }
- for(let i=0;i<COLS-1;i++)bump+=Math.abs(heights[i]-heights[i+1]);
- let wells=0;
- for(let c=0;c<COLS;c++){
-  const left=c===0?ROWS:heights[c-1],right=c===COLS-1?ROWS:heights[c+1];
-  wells+=Math.max(0,Math.min(left,right)-heights[c]);
- }
- return cleared*8.5-holes*7.2-aggregate*0.48-bump*0.62-wells*0.25;
+
+  for(let i = 0; i < COLS - 1; i++){
+    bump += Math.abs(heights[i] - heights[i + 1]);
+  }
+
+  let wells = 0;
+
+  for(let c = 0; c < COLS; c++){
+    const left = c === 0 ? ROWS : heights[c - 1];
+    const right = c === COLS - 1 ? ROWS : heights[c + 1];
+
+    wells += Math.max(
+      0,
+      Math.min(left, right) - heights[c]
+    );
+  }
+
+  // 複数ライン消去を強く評価
+  const clearBonus = [
+    0,
+    0,
+    180,
+    480,
+    1100
+  ][Math.min(cleared, 4)] || 1100;
+
+  return (
+    clearBonus
+    - holes * 8.5
+    - aggregate * 0.42
+    - bump * 0.55
+    - wells * 0.2
+  );
 }
 function cpuFindMove(piece){
  let best=null,shape=piece.shape.map(r=>r.slice());
@@ -1350,8 +1363,9 @@ function cpuSpawn(){
 }
 function cpuLockPiece(){
   const p = remote.piece;
-  if(!p) return;
+  if(!p || remote.gameOver) return;
 
+  // ミノをCPUの盤面に固定
   p.shape.forEach((row, sy) => {
     row.forEach((v, sx) => {
       if(v && p.y + sy >= 0){
@@ -1360,40 +1374,58 @@ function cpuLockPiece(){
     });
   });
 
+  // ライン消去
   let cleared = 0;
 
   for(let r = ROWS - 1; r >= 0; r--){
     if(remote.board[r].every(Boolean)){
       remote.board.splice(r, 1);
       remote.board.unshift(Array(COLS).fill(0));
+
       cleared++;
       r++;
     }
   }
 
-  if(cleared){
+  // ライン消去後のスコア・攻撃処理
+  if(cleared > 0){
     remote.lines += cleared;
     remote.combo++;
 
-    remote.score +=
-      ([0, 100, 300, 500, 800][cleared] || 900)
-      + remote.combo * 35;
+    const scores = [
+      0,
+      100,
+      300,
+      500,
+      800
+    ];
 
-    // CPUからプレイヤーへ攻撃
+    remote.score +=
+      (scores[cleared] || 900) +
+      remote.combo * 35;
+
+    // CPUからプレイヤーへお邪魔ブロックを送る
     const attack = garbageAttackForLines(cleared);
 
-    if(attack > 0){
+    if(attack > 0 && cpuMode){
       applyGarbageToPlayer(attack, 'CPU');
     }
+
+    effectText = `CPU CLEAR ${cleared} LINE`;
+    effectTimer = 35;
+
   }else{
     remote.combo = 0;
   }
 
+  // プレイヤーがゲームオーバーになった場合は終了
   if(finished || gameOver) return;
 
+  // CPUの盤面を更新
   remote.piece = null;
   drawEnemy();
 
+  // 次のミノを生成
   cpuSpawn();
 }
 function updateCPU(delta){
@@ -1428,7 +1460,27 @@ function updateCPU(delta){
   }
  }
 }
+// 即CPUマッチ
+async function startInstantCPU(){
+  // マッチング中なら解除
+  if(queueTimer){
+    clearTimeout(queueTimer);
+    queueTimer = null;
+  }
 
+  if(queueChannel && sb){
+    try{
+      await sb.removeChannel(queueChannel);
+    }catch(e){}
+    queueChannel = null;
+  }
+
+  startCPUFallback();
+}
+
+$('instantCpuMatch').onclick = () => {
+  startInstantCPU();
+};
 function startCPUFallback(){
   soloItemMode=false;
   cpuAI=null;cpuClock=0;
@@ -1892,3 +1944,4 @@ requestAnimationFrame(update);
 
 })();
 </script></body></html>
+                                   
