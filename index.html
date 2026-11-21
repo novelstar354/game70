@@ -437,7 +437,7 @@ button,input{font:inherit}button{border:1px solid #00ddeb;background:linear-grad
 <label>ホールド <button class="bind-key" data-bind="hold">C</button></label>
 <label>一時停止 <button class="bind-key" data-bind="pause">P</button></label></div>
 <div class="field"><label for="softDropSpeed">ソフトドロップ速度：<strong id="softDropSpeedValue">1.0×</strong></label>
-<input id="softDropSpeed" type="range" min="1" max="8" step="1" value="1"><div class="muted">数値を上げるほど、下キー1回で速く落下します。</div></div>
+<input id="softDropSpeed" type="range" min="1" max="8" step="1" value="1"><div class="muted">数値を上げるほど、下キーを押し続けたときの連続落下が速くなります。</div></div>
 <div class="actions"><button id="configTest">お試しプレイ</button><button id="configSave">保存</button></div>
 <div class="actions"><button id="configReset" class="subtle">初期設定に戻す</button><button id="configBack" class="subtle">タイトルへ戻る</button></div>
 <div id="configStatus" class="status">キー変更ボタンを押してから、割り当てたいキーを押してください。</div>
@@ -529,6 +529,7 @@ let soloItemMode = false;
 let viewingFinalBoard=false, configTestMode=false;
 const DEFAULT_KEYS={left:'ArrowLeft',right:'ArrowRight',down:'ArrowDown',drop:' ',rotateCW:'ArrowUp',dButton:'ArrowUp',rotateCCW:'a',rotate180:'s',hold:'c',pause:'p'};
 let keyBindings={...DEFAULT_KEYS},softDropSpeed=1,capturingBind=null;
+let softDropHeld=false,softDropRepeatAt=0;
 // ライン削除アニメーション
 let itemClearAnimation = null;
 const SOLO_ITEMS = [
@@ -1160,15 +1161,18 @@ function applyGarbageToPlayer(lines, source = 'OPPONENT'){
   if(!count || !started || gameOver) return;
 
   let previousHole = -1;
+  let overflowed = false;
 
   for(let i = 0; i < count; i++){
     const next = makeGarbageRow(previousHole);
     previousHole = next.hole;
 
+    // 実際に盤面最上段のブロックが押し出された場合だけトップアウト扱い。
+    // 操作中ミノが一時的に画面上端より上へ移動しただけでは負けにしない。
+    if(board[0].some(Boolean)) overflowed = true;
     board.shift();
     board.push(next.row);
 
-    // 操作中のミノも押し上げる
     if(current) y--;
   }
 
@@ -1180,11 +1184,7 @@ function applyGarbageToPlayer(lines, source = 'OPPONENT'){
   spawnShockwave();
 
   // ミノが盤面上部から押し出されたらゲーム終了
-  const pushedOut = current && current.shape.some((row, ry) =>
-    row.some((v, rx) => v && y + ry < 0)
-  );
-
-  if(pushedOut || collision()){
+  if(overflowed || collision()){
     endGame();
   }
 
@@ -1200,11 +1200,13 @@ function applyGarbageToCPU(lines){
   if(!count || !cpuMode || remote.gameOver) return;
 
   let previousHole = -1;
+  let overflowed = false;
 
   for(let i = 0; i < count; i++){
     const next = makeGarbageRow(previousHole);
     previousHole = next.hole;
 
+    if(remote.board[0].some(Boolean)) overflowed = true;
     remote.board.shift();
     remote.board.push(next.row);
 
@@ -1221,12 +1223,8 @@ function applyGarbageToCPU(lines){
   effectText = `CPU GARBAGE +${count}`;
   effectTimer = 32;
 
-  const pushedOut = remote.piece && remote.piece.shape.some((row, ry) =>
-    row.some((v, rx) => v && remote.piece.y + ry < 0)
-  );
-
   if(
-    pushedOut ||
+    overflowed ||
     (remote.piece && !cpuFits(
       remote.board,
       remote.piece.shape,
@@ -1890,14 +1888,14 @@ function keyLabel(key){if(key===' ')return 'SPACE';return ({ArrowLeft:'←',Arro
 function loadControls(){
   try{const saved=JSON.parse(localStorage.getItem('blocks_neon_controls')||'{}');keyBindings={...DEFAULT_KEYS,...(saved.keys||{})};softDropSpeed=Math.max(1,Math.min(8,Number(saved.softDropSpeed)||1));}
   catch(e){keyBindings={...DEFAULT_KEYS};softDropSpeed=1;}
-  $('softDropSpeed').value=String(softDropSpeed);$('softDropSpeedValue').textContent=softDropSpeed.toFixed(1)+'×';
+  $('softDropSpeed').value=String(softDropSpeed);$('softDropSpeedValue').textContent=softDropSpeed+'段階';
   document.querySelectorAll('[data-bind]').forEach(b=>b.textContent=keyLabel(keyBindings[b.dataset.bind]));
 }
 function saveControls(){localStorage.setItem('blocks_neon_controls',JSON.stringify({keys:keyBindings,softDropSpeed}));loadControls();status('configStatus','設定を保存しました。');}
 $('configMode').onclick=()=>{loadControls();$('configScreen').style.display='flex';};
 $('configBack').onclick=()=>$('configScreen').style.display='none';
 document.querySelectorAll('[data-bind]').forEach(b=>b.onclick=()=>{capturingBind=b.dataset.bind;b.textContent='入力待ち…';status('configStatus','割り当てたいキーを押してください。');});
-$('softDropSpeed').oninput=e=>{softDropSpeed=Number(e.target.value)||1;$('softDropSpeedValue').textContent=softDropSpeed.toFixed(1)+'×';};
+$('softDropSpeed').oninput=e=>{softDropSpeed=Number(e.target.value)||1;$('softDropSpeedValue').textContent=softDropSpeed+'段階';};
 $('configSave').onclick=saveControls;
 $('configReset').onclick=()=>{keyBindings={...DEFAULT_KEYS};softDropSpeed=1;$('softDropSpeed').value='1';saveControls();status('configStatus','初期設定に戻しました。');};
 $('configTest').onclick=()=>{saveControls();$('configScreen').style.display='none';openLocal('solo',false);configTestMode=true;$('modeLabel').textContent='CONFIG TEST';$('configTestExit').style.display='block';$('gestureHint').textContent='設定したキーの動作をお試しできます。';};
@@ -1949,16 +1947,36 @@ function action(a){
 }
 
 document.addEventListener('keydown',e=>{
- if(capturingBind){e.preventDefault();keyBindings[capturingBind]=e.key;capturingBind=null;loadControls();status('configStatus','キーを設定しました。保存すると反映されます。');return;}
+ if(capturingBind){
+   e.preventDefault();
+   keyBindings[capturingBind]=e.key;
+   const target=document.querySelector('[data-bind="'+capturingBind+'"]');
+   if(target)target.textContent=keyLabel(e.key);
+   capturingBind=null;
+   status('configStatus','キーを設定しました。最後に「保存」を押してください。');
+   return;
+ }
  const key=e.key;
  if(['ArrowLeft','ArrowRight','ArrowDown','ArrowUp',' '].includes(key))e.preventDefault();
- for(const name of ['left','right','down','drop','rotateCW','dButton','rotateCCW','rotate180','hold','pause']){
+ // ソフトドロップは押した瞬間に1段、押し続けると設定速度で連続落下
+ if(key===keyBindings.down || key.toLowerCase()===String(keyBindings.down).toLowerCase()){
+   if(!softDropHeld){softDropHeld=true;softDropRepeatAt=performance.now()+Math.max(35,190-(softDropSpeed-1)*21);action('down');}
+   return;
+ }
+ for(const name of ['left','right','drop','rotateCW','dButton','rotateCCW','rotate180','hold','pause']){
    const assigned=keyBindings[name];
    if(key===assigned || key.toLowerCase()===String(assigned).toLowerCase()){action(name);return;}
  }
  if(key==='v'||key==='V')useSoloItem();
  if((key==='r'||key==='R')&&started&&!finished)retryCurrentGame();
 });
+document.addEventListener('keyup',e=>{
+ if(e.key===keyBindings.down || e.key.toLowerCase()===String(keyBindings.down).toLowerCase()){
+   softDropHeld=false;
+   softDropRepeatAt=0;
+ }
+});
+window.addEventListener('blur',()=>{softDropHeld=false;softDropRepeatAt=0;});
 document.querySelectorAll('[data-action]').forEach(b=>{const a=b.dataset.action;b.addEventListener('pointerdown',e=>{e.preventDefault();action(a)})});
 // Canvas gestures: horizontal/down flick = move/drop; tap = rotate; double tap = hard drop. Up flick is intentionally ignored.
 let touchStart=null,lastTap=0,tapTimer=null;canvas.style.touchAction='none';canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;touchStart={x:e.clientX,y:e.clientY,t:Date.now(),id:e.pointerId};canvas.setPointerCapture(e.pointerId)});
@@ -1999,14 +2017,22 @@ function update(time=0){
     }
   }
 
-  // 通常のブロック落下
+  // 通常の自動落下
   if(started&&!paused&&!gameOver&&!itemClearAnimation){
     dropCounter+=delta;
-
     if(dropCounter>dropInterval){
-      softDrop();
+      y++;
+      if(collision()){y--;merge();clearLines();resetPiece();}
+      publishState();
       dropCounter=0;
     }
+    // 下キーを押している間はCONFIGの段階に応じた速度で連続落下
+    if(softDropHeld && time>=softDropRepeatAt){
+      softDrop();
+      softDropRepeatAt=time+Math.max(35,190-(softDropSpeed-1)*21);
+    }
+  }else if(paused||gameOver||!started){
+    softDropHeld=false;
   }
 
   // CPUは独立した盤面でミノを選択・移動・落下させる。
